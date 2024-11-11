@@ -17,7 +17,6 @@ workspace "Game-Of-Life-Pixel"
 	group "3rdParty"
 		include "3rdParty/ImGui"
 		include "3rdParty/glm"
-		include "3rdParty/assimp"
 	group ""
 
 project "Game-Of-Life-Pixel"
