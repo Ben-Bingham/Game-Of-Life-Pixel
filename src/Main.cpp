@@ -5,6 +5,7 @@
 
 #include "OpenGl-Utility/Shader.h"
 #include "OpenGl-Utility/GLDebug.h"
+#include "OpenGl-Utility/Texture.h"
 
 // From LearnOpenGL.com
 // https://learnopengl.com/code_viewer_gh.php?code=src/1.getting_started/2.2.hello_triangle_indexed/hello_triangle_indexed.cpp
@@ -16,6 +17,9 @@ void processInput(GLFWwindow* window);
 glm::ivec2 screenSize{ 800, 600 };
 
 std::unique_ptr<Shader> primaryShaderProgram;
+
+std::unique_ptr<Texture> boardA;
+std::unique_ptr<Texture> boardB;
 
 int main() {
     // glfw: initialize and configure
@@ -84,6 +88,9 @@ int main() {
     glBindVertexArray(0);
 
     primaryShaderProgram = std::make_unique<Shader>("assets\\vertex.glsl", "assets\\fragment.glsl");
+
+    boardA = std::make_unique<Texture>(screenSize);
+    boardB = std::make_unique<Texture>(screenSize);
 
     // render loop
     // -----------
