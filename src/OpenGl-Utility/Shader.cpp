@@ -9,7 +9,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
-std::string ReadFile(const std::string& path) {
+static std::string ReadFile(const std::string& path) {
     std::string out;
     std::ifstream file;
 

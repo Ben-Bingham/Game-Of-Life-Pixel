@@ -1,7 +1,10 @@
+#include <fstream>
+
 #include <gl/glew.h>
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <sstream>
 
 #include "OpenGl-Utility/Shader.h"
 #include "OpenGl-Utility/GLDebug.h"
@@ -19,15 +22,39 @@ glm::ivec2 screenSize{ 800, 600 };
 std::unique_ptr<Shader> primaryShaderProgram;
 
 std::unique_ptr<Texture> boardA;
-std::unique_ptr<Texture> boardB;
+//std::unique_ptr<Texture> boardB;
+
+unsigned int computerShader{ 0 };
+
+static std::string ReadFile(const std::string& path) {
+    std::string out;
+    std::ifstream file;
+
+    file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    try {
+        file.open(path);
+
+        std::stringstream shaderStream;
+        shaderStream << file.rdbuf();
+
+        file.close();
+        out = shaderStream.str();
+    }
+    catch (std::ifstream::failure& e) {
+        std::cout << "ERROR: Could not successfully read file with path: " << path << "And error: " << e.what() << std::endl;
+    }
+
+    return out;
+}
 
 int main() {
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 
     // glfw window creation
     // --------------------
@@ -45,6 +72,14 @@ int main() {
     if (glewInit() != GLEW_OK) {
         std::cout << "Failed to initialize GLEW" << std::endl;
         return -1;
+    }
+
+    int flags; glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+    if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(glDebugOutput, nullptr);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
     }
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
@@ -89,12 +124,53 @@ int main() {
 
     primaryShaderProgram = std::make_unique<Shader>("assets\\vertex.glsl", "assets\\fragment.glsl");
 
-    boardA = std::make_unique<Texture>(screenSize);
-    boardB = std::make_unique<Texture>(screenSize);
+    boardA = std::make_unique<Texture>(screenSize, Texture::Format::RGBA, Texture::StorageType::UNSIGNED_BYTE);
+    //boardB = std::make_unique<Texture>(screenSize, Texture::Format::R);
+
+    glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
+
+    std::string computerShaderSource = ReadFile("assets\\compute.glsl");
+    const char* computerSource = computerShaderSource.c_str();
+
+    unsigned int cShader = glCreateShader(GL_COMPUTE_SHADER);
+    glShaderSource(cShader, 1, &computerSource, nullptr);
+    glCompileShader(cShader);
+
+    int success;
+    char infoLog[512];
+    glGetShaderiv(cShader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(cShader, 512, nullptr, infoLog);
+        std::cout << "ERROR: Compute shader failed to compile:" << std::endl;
+        std::cout << infoLog << std::endl;
+    }
+
+    computerShader = glCreateProgram();
+    glAttachShader(computerShader, cShader);
+
+    glLinkProgram(computerShader);
+
+    glGetProgramiv(computerShader, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(computerShader, 512, nullptr, infoLog);
+        std::cout << "ERROR: Compute Shader program failed to link:" << std::endl;
+        std::cout << infoLog << std::endl;
+    }
+
+    glDeleteShader(cShader);
+
+    glUseProgram(computerShader);
+    glActiveTexture(GL_TEXTURE0);
+    boardA->Bind();
+
+    glDispatchCompute(screenSize.x, screenSize.y, 1);
+    //glMemoryBarrier(GL_ALL_BARRIER_BITS);
+    glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT);
 
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
+
         // input
         // -----
         processInput(window);
@@ -124,6 +200,8 @@ int main() {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
+
+    glDeleteProgram(computerShader);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------

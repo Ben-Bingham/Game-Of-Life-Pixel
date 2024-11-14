@@ -12,3 +12,15 @@ Texture::Texture(glm::ivec2 size, Format format, StorageType storageType) {
 
     glTexImage2D(GL_TEXTURE_2D, 0, (int)format, size.x, size.y, 0, (int)format, (int)storageType, nullptr);
 }
+
+Texture::~Texture() {
+    glDeleteTextures(1, &m_TextureHandle);
+}
+
+void Texture::Bind() {
+    glBindTexture(GL_TEXTURE_2D, m_TextureHandle);
+}
+
+unsigned Texture::Get() {
+    return m_TextureHandle;
+}
