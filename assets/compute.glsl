@@ -49,14 +49,59 @@ void main() {
     //}
     //return;
     
-    x0 = imageLoad(boardA, pos + ivec2(-1, -1)).x == 255 ? 1 : 0;
-    x1 = imageLoad(boardA, pos + ivec2( 0, -1)).x == 255 ? 1 : 0;
-    x2 = imageLoad(boardA, pos + ivec2( 1, -1)).x == 255 ? 1 : 0;
-    x3 = imageLoad(boardA, pos + ivec2(-1,  0)).x == 255 ? 1 : 0;
-    x5 = imageLoad(boardA, pos + ivec2( 1,  0)).x == 255 ? 1 : 0;
-    x6 = imageLoad(boardA, pos + ivec2(-1,  1)).x == 255 ? 1 : 0;
-    x7 = imageLoad(boardA, pos + ivec2( 0,  1)).x == 255 ? 1 : 0;
-    x8 = imageLoad(boardA, pos + ivec2( 1,  1)).x == 255 ? 1 : 0;
+    ivec2 x0Pos = pos + ivec2(-1, -1);
+    ivec2 x1Pos = pos + ivec2( 0, -1);
+    ivec2 x2Pos = pos + ivec2( 1, -1);
+    ivec2 x3Pos = pos + ivec2(-1,  0);
+    ivec2 x5Pos = pos + ivec2( 1,  0);
+    ivec2 x6Pos = pos + ivec2(-1,  1);
+    ivec2 x7Pos = pos + ivec2( 0,  1);
+    ivec2 x8Pos = pos + ivec2( 1,  1);
+
+    x0Pos.x = x0Pos.x < 0 ? boardSize.x - 1 : x0Pos.x;
+    x1Pos.x = x1Pos.x < 0 ? boardSize.x - 1 : x1Pos.x;
+    x2Pos.x = x2Pos.x < 0 ? boardSize.x - 1 : x2Pos.x;
+    x3Pos.x = x3Pos.x < 0 ? boardSize.x - 1 : x3Pos.x;
+    x5Pos.x = x5Pos.x < 0 ? boardSize.x - 1 : x5Pos.x;
+    x6Pos.x = x6Pos.x < 0 ? boardSize.x - 1 : x6Pos.x;
+    x7Pos.x = x7Pos.x < 0 ? boardSize.x - 1 : x7Pos.x;
+    x8Pos.x = x8Pos.x < 0 ? boardSize.x - 1 : x8Pos.x;
+
+    x0Pos.y = x0Pos.y < 0 ? boardSize.y - 1 : x0Pos.y;
+    x1Pos.y = x1Pos.y < 0 ? boardSize.y - 1 : x1Pos.y;
+    x2Pos.y = x2Pos.y < 0 ? boardSize.y - 1 : x2Pos.y;
+    x3Pos.y = x3Pos.y < 0 ? boardSize.y - 1 : x3Pos.y;
+    x5Pos.y = x5Pos.y < 0 ? boardSize.y - 1 : x5Pos.y;
+    x6Pos.y = x6Pos.y < 0 ? boardSize.y - 1 : x6Pos.y;
+    x7Pos.y = x7Pos.y < 0 ? boardSize.y - 1 : x7Pos.y;
+    x8Pos.y = x8Pos.y < 0 ? boardSize.y - 1 : x8Pos.y;
+
+    x0Pos.x = x0Pos.x >= boardSize.x ? 0 : x0Pos.x;
+    x1Pos.x = x1Pos.x >= boardSize.x ? 0 : x1Pos.x;
+    x2Pos.x = x2Pos.x >= boardSize.x ? 0 : x2Pos.x;
+    x3Pos.x = x3Pos.x >= boardSize.x ? 0 : x3Pos.x;
+    x5Pos.x = x5Pos.x >= boardSize.x ? 0 : x5Pos.x;
+    x6Pos.x = x6Pos.x >= boardSize.x ? 0 : x6Pos.x;
+    x7Pos.x = x7Pos.x >= boardSize.x ? 0 : x7Pos.x;
+    x8Pos.x = x8Pos.x >= boardSize.x ? 0 : x8Pos.x;
+
+    x0Pos.y = x0Pos.y >= boardSize.y ? 0 : x0Pos.y;
+    x1Pos.y = x1Pos.y >= boardSize.y ? 0 : x1Pos.y;
+    x2Pos.y = x2Pos.y >= boardSize.y ? 0 : x2Pos.y;
+    x3Pos.y = x3Pos.y >= boardSize.y ? 0 : x3Pos.y;
+    x5Pos.y = x5Pos.y >= boardSize.y ? 0 : x5Pos.y;
+    x6Pos.y = x6Pos.y >= boardSize.y ? 0 : x6Pos.y;
+    x7Pos.y = x7Pos.y >= boardSize.y ? 0 : x7Pos.y;
+    x8Pos.y = x8Pos.y >= boardSize.y ? 0 : x8Pos.y;
+
+    x0 = imageLoad(boardA, x0Pos).x == 255 ? 1 : 0;
+    x1 = imageLoad(boardA, x1Pos).x == 255 ? 1 : 0;
+    x2 = imageLoad(boardA, x2Pos).x == 255 ? 1 : 0;
+    x3 = imageLoad(boardA, x3Pos).x == 255 ? 1 : 0;
+    x5 = imageLoad(boardA, x5Pos).x == 255 ? 1 : 0;
+    x6 = imageLoad(boardA, x6Pos).x == 255 ? 1 : 0;
+    x7 = imageLoad(boardA, x7Pos).x == 255 ? 1 : 0;
+    x8 = imageLoad(boardA, x8Pos).x == 255 ? 1 : 0;
 
     uint neighbourCount = x0 + x1 + x2 + x3 + x5 + x6 + x7 + x8;
 

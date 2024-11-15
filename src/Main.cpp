@@ -226,7 +226,7 @@ int main() {
         //}
         ImGui::End();
 
-        if (std::chrono::steady_clock::now() - lastStepTime >= std::chrono::duration<double>(0.25)) {
+        if (std::chrono::steady_clock::now() - lastStepTime >= std::chrono::duration<double>(0)) {
             std::chrono::time_point<std::chrono::steady_clock> computeStart = std::chrono::steady_clock::now();
 
             glUseProgram(computerShader);
