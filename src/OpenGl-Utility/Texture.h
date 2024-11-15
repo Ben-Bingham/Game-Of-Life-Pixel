@@ -1,4 +1,6 @@
 #pragma once
+#include <vector>
+
 #include <gl/glew.h>
 #include <GLFW/glfw3.h>
 
@@ -18,7 +20,7 @@ public:
         FLOAT = GL_FLOAT
     };
 
-	Texture(glm::ivec2 size, Format format = Format::RGB, StorageType storageType = StorageType::UNSIGNED_BYTE);
+    Texture(glm::ivec2 size, Format format = Format::RGB, StorageType storageType = StorageType::UNSIGNED_BYTE, std::vector<unsigned char> data = std::vector<unsigned char>{ });
     Texture(const Texture& other) = delete;
     Texture(Texture&& other) noexcept = default;
     Texture& operator=(const Texture& other) = delete;

@@ -134,8 +134,40 @@ int main() {
 
     primaryShaderProgram = std::make_unique<Shader>("assets\\vertex.glsl", "assets\\fragment.glsl");
 
-    boardA = std::make_unique<Texture>(boardSize, Texture::Format::R, Texture::StorageType::UNSIGNED_BYTE);
-    boardB = std::make_unique<Texture>(screenSize, Texture::Format::R, Texture::StorageType::UNSIGNED_BYTE);
+    std::vector<unsigned char> startingData;
+    startingData.resize(boardSize.x * boardSize.y);
+
+    //for (int x = 0; x < boardSize.x; ++x) {
+    //    for (int y = 0; y < boardSize.y; ++y) {
+    //        if ((x + y) % 3 == 0) {
+    //            startingData[x * boardSize.x + y] = 255;
+    //        }
+    //    }
+    //}
+
+    startingData[10 * boardSize.x + 10] = 255;
+    startingData[10 * boardSize.x + 11] = 255;
+    startingData[10 * boardSize.x + 12] = 255;
+    startingData[12 * boardSize.x + 11] = 255;
+    startingData[11 * boardSize.x + 12] = 255;
+
+    boardA = std::make_unique<Texture>(boardSize, Texture::Format::R, Texture::StorageType::UNSIGNED_BYTE, startingData);
+
+    //startingData[10 * boardSize.x + 10] = 0;
+    //startingData[10 * boardSize.x + 11] = 0;
+    //startingData[10 * boardSize.x + 12] = 0;
+
+    //startingData[10 * boardSize.x + 10] = 255;
+    //startingData[11 * boardSize.x + 10] = 255;
+    //startingData[12 * boardSize.x + 10] = 255;
+
+    boardB = std::make_unique<Texture>(boardSize, Texture::Format::R, Texture::StorageType::UNSIGNED_BYTE);
+
+    //while (true) {
+    //    glfwSwapBuffers(window);
+    //    glfwPollEvents();
+    //}
+    //return 0;
 
     glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
     glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
@@ -170,6 +202,8 @@ int main() {
 
     glDeleteShader(cShader);
 
+    std::chrono::time_point<std::chrono::steady_clock> lastStepTime = std::chrono::steady_clock::now();
+
     std::chrono::duration<double> frameTime{ };
     std::chrono::duration<double> computeTime{ };
 
@@ -192,23 +226,42 @@ int main() {
         //}
         ImGui::End();
 
-        std::chrono::time_point<std::chrono::steady_clock> computeStart = std::chrono::steady_clock::now();
+        if (std::chrono::steady_clock::now() - lastStepTime >= std::chrono::duration<double>(0.25)) {
+            std::chrono::time_point<std::chrono::steady_clock> computeStart = std::chrono::steady_clock::now();
 
-        glUseProgram(computerShader);
-        glActiveTexture(GL_TEXTURE0);
-        boardA->Bind();
+            glUseProgram(computerShader);
+            glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
+            glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
 
-        glDispatchCompute(boardSize.x, boardSize.y, 1);
-        glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT);
-        computeTime = std::chrono::steady_clock::now() - computeStart;
+            glUniform2iv(glGetUniformLocation(computerShader, "boardSize"), 1, glm::value_ptr(boardSize));
+
+            glActiveTexture(GL_TEXTURE0);
+            boardA->Bind();
+
+            glActiveTexture(GL_TEXTURE1);
+            boardB->Bind();
+
+            glDispatchCompute(boardSize.x, boardSize.y, 1);
+            glMemoryBarrier(GL_ALL_BARRIER_BITS);
+            computeTime = std::chrono::steady_clock::now() - computeStart;
+
+            lastStepTime = std::chrono::steady_clock::now();
+
+            std::swap(boardA, boardB);
+        }
 
         // render
         // ------
+
+        glActiveTexture(GL_TEXTURE0);
+        boardB->Bind();
+
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         primaryShaderProgram->Bind();
         primaryShaderProgram->SetVec2("screenSize", screenSize);
+        primaryShaderProgram->SetInt("boardA", 0);
 
         // draw our first triangle
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
