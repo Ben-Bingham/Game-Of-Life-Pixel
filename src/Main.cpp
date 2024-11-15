@@ -13,6 +13,8 @@
 
 #include "ImGuiInstance.h"
 
+#include <glm/gtc/type_ptr.hpp>
+
 // From LearnOpenGL.com
 // https://learnopengl.com/code_viewer_gh.php?code=src/1.getting_started/2.2.hello_triangle_indexed/hello_triangle_indexed.cpp
 
@@ -21,11 +23,12 @@ void processInput(GLFWwindow* window);
 
 // settings
 glm::ivec2 screenSize{ 800, 600 };
+glm::ivec2 boardSize{ screenSize };
 
 std::unique_ptr<Shader> primaryShaderProgram;
 
 std::unique_ptr<Texture> boardA;
-//std::unique_ptr<Texture> boardB;
+std::unique_ptr<Texture> boardB;
 
 unsigned int computerShader{ 0 };
 
@@ -63,7 +66,7 @@ int main() {
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(screenSize.x, screenSize.y, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(screenSize.x, screenSize.y, "Game Of Life Pixel", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -131,10 +134,11 @@ int main() {
 
     primaryShaderProgram = std::make_unique<Shader>("assets\\vertex.glsl", "assets\\fragment.glsl");
 
-    boardA = std::make_unique<Texture>(screenSize, Texture::Format::RGBA, Texture::StorageType::UNSIGNED_BYTE);
-    //boardB = std::make_unique<Texture>(screenSize, Texture::Format::R);
+    boardA = std::make_unique<Texture>(boardSize, Texture::Format::R, Texture::StorageType::UNSIGNED_BYTE);
+    boardB = std::make_unique<Texture>(screenSize, Texture::Format::R, Texture::StorageType::UNSIGNED_BYTE);
 
-    glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
+    glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
+    glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
 
     std::string computerShaderSource = ReadFile("assets\\compute.glsl");
     const char* computerSource = computerShaderSource.c_str();
@@ -166,24 +170,37 @@ int main() {
 
     glDeleteShader(cShader);
 
-    glUseProgram(computerShader);
-    glActiveTexture(GL_TEXTURE0);
-    boardA->Bind();
-
-    glDispatchCompute(screenSize.x, screenSize.y, 1);
-    //glMemoryBarrier(GL_ALL_BARRIER_BITS);
-    glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT);
+    std::chrono::duration<double> frameTime{ };
+    std::chrono::duration<double> computeTime{ };
 
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
+        std::chrono::time_point<std::chrono::steady_clock> frameStart = std::chrono::steady_clock::now();
+
         imGui.StartNewFrame();
         // input
         // -----
         processInput(window);
 
-        ImGui::Begin("Test");
+        ImGui::Begin("Game Of Life Pixel");
+        ImGui::Text(("Frame Time: " + std::to_string((double)frameTime.count() / 1000.0) + "ms").c_str());
+        ImGui::Text(("Compute Time: " + std::to_string((double)computeTime.count() / 1000.0) + "ms").c_str());
+
+        //if (ImGui::DragInt2("Board size", glm::value_ptr(boardSize))) {
+        //    
+        //}
         ImGui::End();
+
+        std::chrono::time_point<std::chrono::steady_clock> computeStart = std::chrono::steady_clock::now();
+
+        glUseProgram(computerShader);
+        glActiveTexture(GL_TEXTURE0);
+        boardA->Bind();
+
+        glDispatchCompute(boardSize.x, boardSize.y, 1);
+        glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT);
+        computeTime = std::chrono::steady_clock::now() - computeStart;
 
         // render
         // ------
@@ -205,6 +222,8 @@ int main() {
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        frameTime = std::chrono::steady_clock::now() - frameStart;
     }
 
     imGui.Cleanup();
