@@ -184,8 +184,8 @@ int main() {
         processInput(window);
 
         ImGui::Begin("Game Of Life Pixel");
-        ImGui::Text(("Frame Time: " + std::to_string((double)frameTime.count() / 1000.0) + "ms").c_str());
-        ImGui::Text(("Compute Time: " + std::to_string((double)computeTime.count() / 1000.0) + "ms").c_str());
+        ImGui::Text(("Frame Time: " + std::to_string((double)frameTime.count() / 1000000.0) + " ms").c_str());
+        ImGui::Text(("Compute Time: " + std::to_string((double)computeTime.count() / 1000000.0) + " ms").c_str());
 
         //if (ImGui::DragInt2("Board size", glm::value_ptr(boardSize))) {
         //    
