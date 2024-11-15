@@ -23,7 +23,7 @@ void processInput(GLFWwindow* window);
 
 // settings
 glm::ivec2 screenSize{ 800, 600 };
-glm::ivec2 boardSize{ screenSize };
+glm::ivec2 boardSize{ 20, 20 };
 
 std::unique_ptr<Shader> primaryShaderProgram;
 

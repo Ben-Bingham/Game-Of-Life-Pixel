@@ -7,7 +7,11 @@ layout(r8ui, binding = 1) uniform uimage2D boardB;
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
 
-    if ((gl_GlobalInvocationID.x / 64 + gl_GlobalInvocationID.y / 64) % 2 == 0) {
+    //uint val = uint(256.0 * (gl_GlobalInvocationID.x / 400)); 
+
+    //imageStore(boardA, pos, uvec4(val, 0, 0, 0));
+
+    if ((gl_GlobalInvocationID.x + gl_GlobalInvocationID.y) % 2 == 0) {
         imageStore(boardA, pos, uvec4(256, 0, 0, 0));
     } else {
         imageStore(boardA, pos, uvec4(0, 0, 0, 0));
