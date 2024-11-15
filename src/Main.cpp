@@ -1,3 +1,4 @@
+#include "imgui.h"
 #include <fstream>
 
 #include <gl/glew.h>
@@ -9,6 +10,8 @@
 #include "OpenGl-Utility/Shader.h"
 #include "OpenGl-Utility/GLDebug.h"
 #include "OpenGl-Utility/Texture.h"
+
+#include "ImGuiInstance.h"
 
 // From LearnOpenGL.com
 // https://learnopengl.com/code_viewer_gh.php?code=src/1.getting_started/2.2.hello_triangle_indexed/hello_triangle_indexed.cpp
@@ -25,6 +28,8 @@ std::unique_ptr<Texture> boardA;
 //std::unique_ptr<Texture> boardB;
 
 unsigned int computerShader{ 0 };
+
+ImGuiInstance imGui{ };
 
 static std::string ReadFile(const std::string& path) {
     std::string out;
@@ -81,6 +86,8 @@ int main() {
         glDebugMessageCallback(glDebugOutput, nullptr);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
     }
+
+    imGui.Init(window);
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -170,10 +177,13 @@ int main() {
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
-
+        imGui.StartNewFrame();
         // input
         // -----
         processInput(window);
+
+        ImGui::Begin("Test");
+        ImGui::End();
 
         // render
         // ------
@@ -189,11 +199,15 @@ int main() {
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         // glBindVertexArray(0); // no need to unbind it every time 
 
+        imGui.FinishFrame();
+
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    imGui.Cleanup();
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
