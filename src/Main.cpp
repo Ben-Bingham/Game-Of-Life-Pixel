@@ -12,6 +12,7 @@
 #include "OpenGl-Utility/Texture.h"
 
 #include "ImGuiInstance.h"
+#include <random>
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -22,8 +23,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
 // settings
-glm::ivec2 screenSize{ 800, 600 };
-glm::ivec2 boardSize{ 20, 20 };
+glm::ivec2 screenSize{ 1600, 1000 };
+glm::ivec2 boardSize{ 1600, 1000 };
 
 std::unique_ptr<Shader> primaryShaderProgram;
 
@@ -137,37 +138,31 @@ int main() {
     std::vector<unsigned char> startingData;
     startingData.resize(boardSize.x * boardSize.y);
 
-    //for (int x = 0; x < boardSize.x; ++x) {
-    //    for (int y = 0; y < boardSize.y; ++y) {
-    //        if ((x + y) % 3 == 0) {
-    //            startingData[x * boardSize.x + y] = 255;
-    //        }
-    //    }
-    //}
-
     startingData[10 * boardSize.x + 10] = 255;
     startingData[10 * boardSize.x + 11] = 255;
     startingData[10 * boardSize.x + 12] = 255;
     startingData[12 * boardSize.x + 11] = 255;
     startingData[11 * boardSize.x + 12] = 255;
 
+    std::random_device dev;
+    std::mt19937 rng(dev());
+
+    //for (int x = 0; x < boardSize.x; ++x) {
+    //    for (int y = 0; y < boardSize.y; ++y) {
+
+    //        std::uniform_int_distribution<std::mt19937::result_type> dist6(0, 10);
+
+    //        if (dist6(rng) > 8) {
+    //            startingData[y * boardSize.x + x] = 255;
+    //        }
+    //    }
+    //}
+
+
+
     boardA = std::make_unique<Texture>(boardSize, Texture::Format::R, Texture::StorageType::UNSIGNED_BYTE, startingData);
 
-    //startingData[10 * boardSize.x + 10] = 0;
-    //startingData[10 * boardSize.x + 11] = 0;
-    //startingData[10 * boardSize.x + 12] = 0;
-
-    //startingData[10 * boardSize.x + 10] = 255;
-    //startingData[11 * boardSize.x + 10] = 255;
-    //startingData[12 * boardSize.x + 10] = 255;
-
     boardB = std::make_unique<Texture>(boardSize, Texture::Format::R, Texture::StorageType::UNSIGNED_BYTE);
-
-    //while (true) {
-    //    glfwSwapBuffers(window);
-    //    glfwPollEvents();
-    //}
-    //return 0;
 
     glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
     glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
@@ -207,10 +202,14 @@ int main() {
     std::chrono::duration<double> frameTime{ };
     std::chrono::duration<double> computeTime{ };
 
+    glfwSwapInterval(0);
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
         std::chrono::time_point<std::chrono::steady_clock> frameStart = std::chrono::steady_clock::now();
+
+        //std::this_thread::sleep_for(std::chrono::duration<double>(1.0));
 
         imGui.StartNewFrame();
         // input
@@ -218,8 +217,8 @@ int main() {
         processInput(window);
 
         ImGui::Begin("Game Of Life Pixel");
-        ImGui::Text(("Frame Time: " + std::to_string((double)frameTime.count() / 1000000.0) + " ms").c_str());
-        ImGui::Text(("Compute Time: " + std::to_string((double)computeTime.count() / 1000000.0) + " ms").c_str());
+        ImGui::Text(("Frame Time: " + std::to_string((double)frameTime.count() * 1000.0) + "ms").c_str());
+        ImGui::Text(("Compute Time: " + std::to_string((double)computeTime.count() * 1000.0) + "ms").c_str());
 
         //if (ImGui::DragInt2("Board size", glm::value_ptr(boardSize))) {
         //    
@@ -310,5 +309,34 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
     screenSize.x = width;
     screenSize.y = height;
+
+    boardSize = screenSize;
+
+    std::vector<unsigned char> startingData;
+    startingData.resize(boardSize.x * boardSize.y);
+
+    std::random_device dev;
+    std::mt19937 rng(dev());
+
+    for (int x = 0; x < boardSize.x; ++x) {
+        for (int y = 0; y < boardSize.y; ++y) {
+
+            std::uniform_int_distribution<std::mt19937::result_type> dist6(0, 10);
+
+            if (dist6(rng) > 5) {
+                startingData[y * boardSize.x + x] = 255;
+            }
+        }
+    }
+
+
+
+    boardA = std::make_unique<Texture>(boardSize, Texture::Format::R, Texture::StorageType::UNSIGNED_BYTE, startingData);
+
+    boardB = std::make_unique<Texture>(boardSize, Texture::Format::R, Texture::StorageType::UNSIGNED_BYTE);
+
+    glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
+    glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
+
     glViewport(0, 0, width, height);
 }
