@@ -11,8 +11,7 @@ public:
     enum class Format {
         R = GL_RED,
         RGB = GL_RGB,
-        RGBA = GL_RGBA,
-        RGBA16F = GL_RGBA16F
+        RGBA = GL_RGBA
     };
 
     enum class StorageType {
@@ -20,7 +19,40 @@ public:
         FLOAT = GL_FLOAT
     };
 
-    Texture(glm::ivec2 size, Format format = Format::RGB, StorageType storageType = StorageType::UNSIGNED_BYTE, std::vector<unsigned char> data = std::vector<unsigned char>{ });
+    enum class WrapMode {
+        REPEAT = GL_REPEAT
+    };
+
+    enum class FilteringMode {
+        LINEAR = GL_LINEAR,
+        NEAREST = GL_NEAREST
+    };
+
+    struct Parameters {
+        Parameters(
+            Format imageFormat = Format::RGBA, 
+            StorageType internalStorageType = StorageType::UNSIGNED_BYTE, 
+            WrapMode wrapMode = WrapMode::REPEAT, 
+            FilteringMode filteringMode = FilteringMode::LINEAR
+        )
+            : imageFormat{ imageFormat }
+            , internalStorageType(internalStorageType)
+            , horizontalWrapMode(wrapMode)
+            , verticalWrapMode(wrapMode)
+            , minFilter(filteringMode)
+            , magFilter(filteringMode) { }
+
+        Format imageFormat{ };
+        StorageType internalStorageType{ };
+
+        WrapMode horizontalWrapMode{ };
+        WrapMode verticalWrapMode{ };
+
+        FilteringMode minFilter{ };
+        FilteringMode magFilter{ };
+    };
+
+    Texture(glm::ivec2 size, Parameters parameters = Parameters{ }, std::vector<unsigned char> data = std::vector<unsigned char>{ });
     Texture(const Texture& other) = delete;
     Texture(Texture&& other) noexcept = default;
     Texture& operator=(const Texture& other) = delete;

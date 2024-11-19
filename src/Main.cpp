@@ -80,8 +80,12 @@ void ResetBoard() {
         }
     }
 
-    boardA = std::make_unique<Texture>(boardSize, Texture::Format::RGBA, Texture::StorageType::UNSIGNED_BYTE, startingData);
-    boardB = std::make_unique<Texture>(boardSize, Texture::Format::RGBA, Texture::StorageType::UNSIGNED_BYTE);
+    Texture::Parameters textureParameters{ };
+    textureParameters.minFilter = Texture::FilteringMode::NEAREST;
+    textureParameters.magFilter = Texture::FilteringMode::NEAREST;
+
+    boardA = std::make_unique<Texture>(boardSize, textureParameters, startingData);
+    boardB = std::make_unique<Texture>(boardSize, textureParameters);
 
     glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
     glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
