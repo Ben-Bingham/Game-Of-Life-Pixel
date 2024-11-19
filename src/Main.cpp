@@ -24,6 +24,7 @@ void processInput(GLFWwindow* window);
 // settings
 glm::ivec2 viewPortSize{ };
 glm::ivec2 boardSize{ 100, 100 };
+glm::ivec2 newBoardSize{ boardSize };
 
 unsigned int minStepTime{ 16 };
 
@@ -194,11 +195,16 @@ int main() {
 
             ImGui::Text("x: %d, y: %d", viewPortSize.x, viewPortSize.y);
 
+            ImGui::Text("Current board size: (%d, %d)", boardSize.x, boardSize.y);
+
             if (ImGui::DragInt("Minimum step time", (int*)&minStepTime, 0.05f, 0, 60 * 1000)) { // Max time is one minute
                 millisCounted = 0;
             }
 
+            ImGui::DragInt2("Board size", glm::value_ptr(newBoardSize));
+
             if (ImGui::Button("Reset")) {
+                boardSize = newBoardSize;
                 ResetBoard();
             }
         }
