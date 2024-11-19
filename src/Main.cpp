@@ -64,7 +64,7 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+
     // glfw window creation
     // --------------------
     GLFWwindow* window = glfwCreateWindow(screenSize.x, screenSize.y, "Game Of Life Pixel", NULL, NULL);
@@ -92,48 +92,6 @@ int main() {
     }
 
     imGui.Init(window);
-
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    float vertices[] = {
-         1.0f,  1.0f, 0.0f,  // top right
-         1.0f, -1.0f, 0.0f,  // bottom right
-        -1.0f, -1.0f, 0.0f,  // bottom left
-        -1.0f,  1.0f, 0.0f   // top left 
-    };
-
-    unsigned int indices[] = {  // note that we start from 0!
-        0, 1, 3,  // first Triangle
-        1, 2, 3   // second Triangle
-    };
-
-    unsigned int VBO, VAO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-    glBindVertexArray(0);
-
-    primaryShaderProgram = std::make_unique<Shader>("assets\\vertex.glsl", "assets\\fragment.glsl");
 
     std::vector<unsigned char> startingData;
     startingData.resize(boardSize.x * boardSize.y * 4);
@@ -204,11 +162,14 @@ int main() {
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
+
         std::chrono::time_point<std::chrono::steady_clock> frameStart = std::chrono::steady_clock::now();
 
         //std::this_thread::sleep_for(std::chrono::duration<double>(1.0));
 
         imGui.StartNewFrame();
+        ImGui::DockSpaceOverViewport();
+
         // input
         // -----
         processInput(window);
@@ -217,11 +178,17 @@ int main() {
         ImGui::Text(("Frame Time: " + std::to_string((double)frameTime.count() * 1000.0) + "ms").c_str());
         ImGui::Text(("Compute Time: " + std::to_string((double)computeTime.count() * 1000.0) + "ms").c_str());
 
-        ImGui::Image((ImTextureID)boardB->Get(), ImVec2{ (float)screenSize.x, (float)screenSize.y }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, ImVec4{ 1, 1, 1, 1 });
         //if (ImGui::DragInt2("Board size", glm::value_ptr(boardSize))) {
         //    
         //}
         ImGui::End();
+
+        ImGui::Begin("Viewport");
+        {
+            ImGui::Image((ImTextureID)boardB->Get(), ImVec2{ (float)screenSize.x, (float)screenSize.y }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, ImVec4{ 1, 1, 1, 1 });
+        }
+        ImGui::End();
+        //ImGui::ShowDemoWindow();
 
         if (std::chrono::steady_clock::now() - lastStepTime >= std::chrono::duration<double>(0)) {
             std::chrono::time_point<std::chrono::steady_clock> computeStart = std::chrono::steady_clock::now();
@@ -247,25 +214,6 @@ int main() {
             std::swap(boardA, boardB);
         }
 
-        // render
-        // ------
-
-        glActiveTexture(GL_TEXTURE0);
-        boardB->Bind();
-
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        primaryShaderProgram->Bind();
-        primaryShaderProgram->SetVec2("screenSize", screenSize);
-        primaryShaderProgram->SetInt("boardA", 0);
-
-        // draw our first triangle
-        glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        //glDrawArrays(GL_TRIANGLES, 0, 6);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        // glBindVertexArray(0); // no need to unbind it every time 
-
         imGui.FinishFrame();
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -277,12 +225,6 @@ int main() {
     }
 
     imGui.Cleanup();
-
-    // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
 
     glDeleteProgram(computerShader);
 
