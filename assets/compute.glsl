@@ -1,8 +1,8 @@
 #version 430 core
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-layout(r8ui, binding = 0) uniform uimage2D boardA; // The source board
-layout(r8ui, binding = 1) uniform uimage2D boardB; // The target board
+layout(rgba8ui, binding = 0) uniform uimage2D boardA; // The source board
+layout(rgba8ui, binding = 1) uniform uimage2D boardB; // The target board
 
 uniform ivec2 boardSize;
 
@@ -129,7 +129,9 @@ void main() {
         }
     }
 
-    imageStore(boardB, pos, uvec4(valToStore == 1 ? 255 : 0, 0, 0, 0));
+    int val = valToStore == 1 ? 255 : 0;
+
+    imageStore(boardB, pos, uvec4(val));
 
     //if ((gl_GlobalInvocationID.x + gl_GlobalInvocationID.y) % 2 == 0) {
     //    imageStore(boardA, pos, uvec4(256, 0, 0, 0));

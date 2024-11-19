@@ -136,7 +136,7 @@ int main() {
     primaryShaderProgram = std::make_unique<Shader>("assets\\vertex.glsl", "assets\\fragment.glsl");
 
     std::vector<unsigned char> startingData;
-    startingData.resize(boardSize.x * boardSize.y);
+    startingData.resize(boardSize.x * boardSize.y * 4);
 
     startingData[10 * boardSize.x + 10] = 255;
     startingData[10 * boardSize.x + 11] = 255;
@@ -147,8 +147,8 @@ int main() {
     std::random_device dev;
     std::mt19937 rng(dev());
 
-    for (int x = 0; x < boardSize.x; ++x) {
-        for (int y = 0; y < boardSize.y; ++y) {
+    for (int x = 0; x < boardSize.x * 4; x += 4) {
+        for (int y = 0; y < boardSize.y * 4; y += 4) {
 
             std::uniform_int_distribution<std::mt19937::result_type> dist6(0, 10);
 
@@ -158,14 +158,11 @@ int main() {
         }
     }
 
+    boardA = std::make_unique<Texture>(boardSize, Texture::Format::RGBA, Texture::StorageType::UNSIGNED_BYTE, startingData);
+    boardB = std::make_unique<Texture>(boardSize, Texture::Format::RGBA, Texture::StorageType::UNSIGNED_BYTE);
 
-
-    boardA = std::make_unique<Texture>(boardSize, Texture::Format::R, Texture::StorageType::UNSIGNED_BYTE, startingData);
-
-    boardB = std::make_unique<Texture>(boardSize, Texture::Format::R, Texture::StorageType::UNSIGNED_BYTE);
-
-    glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
-    glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
+    glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
+    glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
 
     std::string computerShaderSource = ReadFile("assets\\compute.glsl");
     const char* computerSource = computerShaderSource.c_str();
@@ -220,7 +217,7 @@ int main() {
         ImGui::Text(("Frame Time: " + std::to_string((double)frameTime.count() * 1000.0) + "ms").c_str());
         ImGui::Text(("Compute Time: " + std::to_string((double)computeTime.count() * 1000.0) + "ms").c_str());
 
-        ImGui::Image((ImTextureID)boardB->Get(), ImVec2{ (float)screenSize.x, (float)screenSize.y }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, ImVec4{ 1, 0, 1, 1 });
+        ImGui::Image((ImTextureID)boardB->Get(), ImVec2{ (float)screenSize.x, (float)screenSize.y }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, ImVec4{ 1, 1, 1, 1 });
         //if (ImGui::DragInt2("Board size", glm::value_ptr(boardSize))) {
         //    
         //}
@@ -230,8 +227,8 @@ int main() {
             std::chrono::time_point<std::chrono::steady_clock> computeStart = std::chrono::steady_clock::now();
 
             glUseProgram(computerShader);
-            glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
-            glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
+            glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
+            glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
 
             glUniform2iv(glGetUniformLocation(computerShader, "boardSize"), 1, glm::value_ptr(boardSize));
 
@@ -314,13 +311,13 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     boardSize = screenSize;
 
     std::vector<unsigned char> startingData;
-    startingData.resize(boardSize.x * boardSize.y);
+    startingData.resize(boardSize.x * boardSize.y * 4);
 
     std::random_device dev;
     std::mt19937 rng(dev());
 
-    for (int x = 0; x < boardSize.x; ++x) {
-        for (int y = 0; y < boardSize.y; ++y) {
+    for (int x = 0; x < boardSize.x * 4; x += 4) {
+        for (int y = 0; y < boardSize.y * 4; y += 4) {
 
             std::uniform_int_distribution<std::mt19937::result_type> dist6(0, 10);
 
@@ -332,12 +329,12 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 
 
-    boardA = std::make_unique<Texture>(boardSize, Texture::Format::R, Texture::StorageType::UNSIGNED_BYTE, startingData);
+    boardA = std::make_unique<Texture>(boardSize, Texture::Format::RGBA, Texture::StorageType::UNSIGNED_BYTE, startingData);
 
-    boardB = std::make_unique<Texture>(boardSize, Texture::Format::R, Texture::StorageType::UNSIGNED_BYTE);
+    boardB = std::make_unique<Texture>(boardSize, Texture::Format::RGBA, Texture::StorageType::UNSIGNED_BYTE);
 
-    glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
-    glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_R8UI);
+    glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
+    glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
 
     glViewport(0, 0, width, height);
 }
