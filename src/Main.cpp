@@ -23,7 +23,9 @@ void processInput(GLFWwindow* window);
 
 // settings
 glm::ivec2 viewPortSize{ };
-glm::ivec2 boardSize{ 100, 100 };
+glm::ivec2 boardSize{ 5000, 5000 };
+
+unsigned int minStepTime{ 16 };
 
 std::unique_ptr<Texture> boardA;
 std::unique_ptr<Texture> boardB;
@@ -155,6 +157,20 @@ int main() {
 
     glfwSwapInterval(0);
 
+    bool killTimerThread = false;
+    std::atomic<size_t> millisCounted = 0;
+
+    std::thread timerThread{ [&]() {
+        while (true) {
+            if (killTimerThread) {
+                break;
+            }
+
+            std::this_thread::sleep_for(std::chrono::duration<double>(1.0f / 1000.0f)); // Sleep for 1 millisecond
+            ++millisCounted;
+        }
+    }};
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -172,10 +188,13 @@ int main() {
 
         ImGui::Begin("Game Of Life Pixel", nullptr, ImGuiWindowFlags_NoMove);
         {
-            ImGui::Text(("Frame Time: " + std::to_string((double)frameTime.count() * 1000.0) + "ms").c_str());
             ImGui::Text(("Compute Time: " + std::to_string((double)computeTime.count() * 1000.0) + "ms").c_str());
 
             ImGui::Text("x: %d, y: %d", viewPortSize.x, viewPortSize.y);
+
+            if (ImGui::DragInt("Minimum step time", (int*)&minStepTime, 0.05f, 0, 60 * 1000)) { // Max time is one minute
+                millisCounted = 0;
+            }
         }
         ImGui::End();
 
@@ -190,7 +209,9 @@ int main() {
 
         //ImGui::ShowDemoWindow();
 
-        if (std::chrono::steady_clock::now() - lastStepTime >= std::chrono::duration<double>(0)) {
+        if (millisCounted >= minStepTime) {
+            millisCounted = 0;
+
             std::chrono::time_point<std::chrono::steady_clock> computeStart = std::chrono::steady_clock::now();
 
             glUseProgram(computerShader);
@@ -209,8 +230,6 @@ int main() {
             glMemoryBarrier(GL_ALL_BARRIER_BITS);
             computeTime = std::chrono::steady_clock::now() - computeStart;
 
-            lastStepTime = std::chrono::steady_clock::now();
-
             std::swap(boardA, boardB);
         }
 
@@ -227,6 +246,9 @@ int main() {
     imGui.Cleanup();
 
     glDeleteProgram(computerShader);
+
+    killTimerThread = true;
+    timerThread.join();
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
