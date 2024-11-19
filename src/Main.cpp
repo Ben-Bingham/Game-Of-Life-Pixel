@@ -147,16 +147,16 @@ int main() {
     std::random_device dev;
     std::mt19937 rng(dev());
 
-    //for (int x = 0; x < boardSize.x; ++x) {
-    //    for (int y = 0; y < boardSize.y; ++y) {
+    for (int x = 0; x < boardSize.x; ++x) {
+        for (int y = 0; y < boardSize.y; ++y) {
 
-    //        std::uniform_int_distribution<std::mt19937::result_type> dist6(0, 10);
+            std::uniform_int_distribution<std::mt19937::result_type> dist6(0, 10);
 
-    //        if (dist6(rng) > 8) {
-    //            startingData[y * boardSize.x + x] = 255;
-    //        }
-    //    }
-    //}
+            if (dist6(rng) > 8) {
+                startingData[y * boardSize.x + x] = 255;
+            }
+        }
+    }
 
 
 
@@ -220,6 +220,7 @@ int main() {
         ImGui::Text(("Frame Time: " + std::to_string((double)frameTime.count() * 1000.0) + "ms").c_str());
         ImGui::Text(("Compute Time: " + std::to_string((double)computeTime.count() * 1000.0) + "ms").c_str());
 
+        ImGui::Image((ImTextureID)boardB->Get(), ImVec2{ (float)screenSize.x, (float)screenSize.y }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, ImVec4{ 1, 0, 1, 1 });
         //if (ImGui::DragInt2("Board size", glm::value_ptr(boardSize))) {
         //    
         //}
