@@ -23,7 +23,7 @@ void processInput(GLFWwindow* window);
 
 // settings
 glm::ivec2 viewPortSize{ };
-glm::ivec2 boardSize{ 5000, 5000 };
+glm::ivec2 boardSize{ 100, 100 };
 
 unsigned int minStepTime{ 16 };
 
@@ -53,6 +53,37 @@ static std::string ReadFile(const std::string& path) {
     }
 
     return out;
+}
+
+void ResetBoard() {
+    std::vector<unsigned char> startingData;
+    startingData.resize(boardSize.x * boardSize.y * 4);
+
+    startingData[10 * boardSize.x + 10] = 255;
+    startingData[10 * boardSize.x + 11] = 255;
+    startingData[10 * boardSize.x + 12] = 255;
+    startingData[12 * boardSize.x + 11] = 255;
+    startingData[11 * boardSize.x + 12] = 255;
+
+    std::random_device dev;
+    std::mt19937 rng(dev());
+
+    for (int x = 0; x < boardSize.x * 4; x += 4) {
+        for (int y = 0; y < boardSize.y * 4; y += 4) {
+
+            std::uniform_int_distribution<std::mt19937::result_type> dist6(0, 10);
+
+            if (dist6(rng) > 8) {
+                startingData[y * boardSize.x + x] = 255;
+            }
+        }
+    }
+
+    boardA = std::make_unique<Texture>(boardSize, Texture::Format::RGBA, Texture::StorageType::UNSIGNED_BYTE, startingData);
+    boardB = std::make_unique<Texture>(boardSize, Texture::Format::RGBA, Texture::StorageType::UNSIGNED_BYTE);
+
+    glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
+    glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
 }
 
 int main() {
@@ -91,34 +122,7 @@ int main() {
 
     imGui.Init(window);
 
-    std::vector<unsigned char> startingData;
-    startingData.resize(boardSize.x * boardSize.y * 4);
-
-    startingData[10 * boardSize.x + 10] = 255;
-    startingData[10 * boardSize.x + 11] = 255;
-    startingData[10 * boardSize.x + 12] = 255;
-    startingData[12 * boardSize.x + 11] = 255;
-    startingData[11 * boardSize.x + 12] = 255;
-
-    std::random_device dev;
-    std::mt19937 rng(dev());
-
-    for (int x = 0; x < boardSize.x * 4; x += 4) {
-        for (int y = 0; y < boardSize.y * 4; y += 4) {
-
-            std::uniform_int_distribution<std::mt19937::result_type> dist6(0, 10);
-
-            if (dist6(rng) > 8) {
-                startingData[y * boardSize.x + x] = 255;
-            }
-        }
-    }
-
-    boardA = std::make_unique<Texture>(boardSize, Texture::Format::RGBA, Texture::StorageType::UNSIGNED_BYTE, startingData);
-    boardB = std::make_unique<Texture>(boardSize, Texture::Format::RGBA, Texture::StorageType::UNSIGNED_BYTE);
-
-    glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
-    glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
+    ResetBoard();
 
     std::string computerShaderSource = ReadFile("assets\\compute.glsl");
     const char* computerSource = computerShaderSource.c_str();
@@ -177,8 +181,6 @@ int main() {
 
         std::chrono::time_point<std::chrono::steady_clock> frameStart = std::chrono::steady_clock::now();
 
-        //std::this_thread::sleep_for(std::chrono::duration<double>(1.0));
-
         imGui.StartNewFrame();
         ImGui::DockSpaceOverViewport();
 
@@ -194,6 +196,10 @@ int main() {
 
             if (ImGui::DragInt("Minimum step time", (int*)&minStepTime, 0.05f, 0, 60 * 1000)) { // Max time is one minute
                 millisCounted = 0;
+            }
+
+            if (ImGui::Button("Reset")) {
+                ResetBoard();
             }
         }
         ImGui::End();
