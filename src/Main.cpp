@@ -19,11 +19,10 @@
 // From LearnOpenGL.com
 // https://learnopengl.com/code_viewer_gh.php?code=src/1.getting_started/2.2.hello_triangle_indexed/hello_triangle_indexed.cpp
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
 // settings
-glm::ivec2 screenSize{ 1600, 1000 };
+glm::ivec2 viewPortSize{ };
 glm::ivec2 boardSize{ 1600, 1000 };
 
 std::unique_ptr<Texture> boardA;
@@ -65,14 +64,13 @@ int main() {
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(screenSize.x, screenSize.y, "Game Of Life Pixel", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1600, 1000, "Game Of Life Pixel", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -176,12 +174,23 @@ int main() {
         {
             ImGui::Text(("Frame Time: " + std::to_string((double)frameTime.count() * 1000.0) + "ms").c_str());
             ImGui::Text(("Compute Time: " + std::to_string((double)computeTime.count() * 1000.0) + "ms").c_str());
+
+            ImGui::Text("x: %d, y: %d", viewPortSize.x, viewPortSize.y);
         }
         ImGui::End();
 
         ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar);
         {
-            ImGui::Image((ImTextureID)boardB->Get(), ImVec2{ (float)screenSize.x, (float)screenSize.y }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, ImVec4{ 1, 1, 1, 1 });
+            glm::ivec2 oldViewportSize{ viewPortSize };
+
+            ImVec2 size = ImGui::GetWindowSize();
+            viewPortSize = glm::ivec2{ size.x, size.y };
+
+            if (oldViewportSize != viewPortSize) {
+
+            }
+
+            ImGui::Image((ImTextureID)boardB->Get(), ImVec2{ (float)viewPortSize.x, (float)viewPortSize.y }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, ImVec4{ 1, 1, 1, 1 });
         }
         ImGui::End();
 
@@ -236,44 +245,4 @@ int main() {
 void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-}
-
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    // make sure the viewport matches the new window dimensions; note that width and 
-    // height will be significantly larger than specified on retina displays.
-
-    screenSize.x = width;
-    screenSize.y = height;
-
-    boardSize = screenSize;
-
-    std::vector<unsigned char> startingData;
-    startingData.resize(boardSize.x * boardSize.y * 4);
-
-    std::random_device dev;
-    std::mt19937 rng(dev());
-
-    for (int x = 0; x < boardSize.x * 4; x += 4) {
-        for (int y = 0; y < boardSize.y * 4; y += 4) {
-
-            std::uniform_int_distribution<std::mt19937::result_type> dist6(0, 10);
-
-            if (dist6(rng) > 5) {
-                startingData[y * boardSize.x + x] = 255;
-            }
-        }
-    }
-
-
-
-    boardA = std::make_unique<Texture>(boardSize, Texture::Format::RGBA, Texture::StorageType::UNSIGNED_BYTE, startingData);
-
-    boardB = std::make_unique<Texture>(boardSize, Texture::Format::RGBA, Texture::StorageType::UNSIGNED_BYTE);
-
-    glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
-    glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
-
-    glViewport(0, 0, width, height);
 }
