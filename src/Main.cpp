@@ -23,7 +23,7 @@ void processInput(GLFWwindow* window);
 
 // settings
 glm::ivec2 viewPortSize{ };
-glm::ivec2 boardSize{ 1600, 1000 };
+glm::ivec2 boardSize{ 100, 100 };
 
 std::unique_ptr<Texture> boardA;
 std::unique_ptr<Texture> boardB;
@@ -170,7 +170,7 @@ int main() {
         // -----
         processInput(window);
 
-        ImGui::Begin("Game Of Life Pixel");
+        ImGui::Begin("Game Of Life Pixel", nullptr, ImGuiWindowFlags_NoMove);
         {
             ImGui::Text(("Frame Time: " + std::to_string((double)frameTime.count() * 1000.0) + "ms").c_str());
             ImGui::Text(("Compute Time: " + std::to_string((double)computeTime.count() * 1000.0) + "ms").c_str());
@@ -181,16 +181,10 @@ int main() {
 
         ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar);
         {
-            glm::ivec2 oldViewportSize{ viewPortSize };
-
             ImVec2 size = ImGui::GetWindowSize();
             viewPortSize = glm::ivec2{ size.x, size.y };
 
-            if (oldViewportSize != viewPortSize) {
-
-            }
-
-            ImGui::Image((ImTextureID)boardB->Get(), ImVec2{ (float)viewPortSize.x, (float)viewPortSize.y }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 }, ImVec4{ 1, 1, 1, 1 });
+            ImGui::Image((ImTextureID)boardB->Get(), ImVec2{ (float)viewPortSize.x, (float)viewPortSize.y });
         }
         ImGui::End();
 
