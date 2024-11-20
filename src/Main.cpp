@@ -22,19 +22,10 @@
 
 void processInput(GLFWwindow* window);
 
-// settings
-glm::ivec2 viewPortSize{ };
 glm::ivec2 boardSize{ 100, 100 };
-glm::ivec2 newBoardSize{ boardSize };
-
-unsigned int minStepTime{ 16 };
 
 std::unique_ptr<Texture> boardA;
 std::unique_ptr<Texture> boardB;
-
-std::unique_ptr<ShaderProgram> computeShader;
-
-ImGuiInstance imGui{ };
 
 void ResetBoard() {
     std::vector<unsigned char> startingData;
@@ -106,11 +97,12 @@ int main() {
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
     }
 
+    ImGuiInstance imGui{ };
     imGui.Init(window);
 
     ResetBoard();
 
-    computeShader = std::make_unique<ShaderProgram>();
+    std::unique_ptr<ShaderProgram> computeShader = std::make_unique<ShaderProgram>();
     computeShader->AddShader("assets\\compute.glsl", ShaderProgram::ShaderType::COMPUTE);
     computeShader->Link();
 
@@ -128,6 +120,12 @@ int main() {
         }
     }};
 
+    glm::ivec2 viewPortSize{ };
+    glm::ivec2 newBoardSize{ boardSize };
+
+    unsigned int minStepTime{ 16 };
+    bool firstFrame = true;
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -140,8 +138,6 @@ int main() {
 
         ImGui::Begin("Game Of Life Pixel", nullptr, ImGuiWindowFlags_NoMove);
         {
-            ImGui::Text("x: %d, y: %d", viewPortSize.x, viewPortSize.y);
-
             ImGui::Text("Current board size: (%d, %d)", boardSize.x, boardSize.y);
 
             if (ImGui::DragInt("Minimum step time", (int*)&minStepTime, 0.05f, 0, 60 * 1000)) { // Max time is one minute
@@ -174,7 +170,9 @@ int main() {
 
         //ImGui::ShowDemoWindow();
 
-        if (millisCounted >= minStepTime) {
+        if (millisCounted >= minStepTime || firstFrame) {
+            firstFrame = false;
+
             millisCounted = 0;
 
             computeShader->Bind();
