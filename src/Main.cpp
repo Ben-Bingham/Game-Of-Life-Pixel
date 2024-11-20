@@ -89,8 +89,9 @@ int main() {
         return -1;
     }
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(0);
 
-    // glad: load all OpenGL function pointers
+    // glew: load all OpenGL function pointers
     // ---------------------------------------
     if (glewInit() != GLEW_OK) {
         std::cout << "Failed to initialize GLEW" << std::endl;
@@ -112,10 +113,6 @@ int main() {
     computeShader = std::make_unique<ShaderProgram>();
     computeShader->AddShader("assets\\compute.glsl", ShaderProgram::ShaderType::COMPUTE);
     computeShader->Link();
-
-    std::chrono::time_point<std::chrono::steady_clock> lastStepTime = std::chrono::steady_clock::now();
-
-    glfwSwapInterval(0);
 
     bool killTimerThread = false;
     std::atomic<size_t> millisCounted = 0;
