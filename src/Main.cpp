@@ -126,6 +126,8 @@ int main() {
     unsigned int minStepTime{ 16 };
     bool firstFrame = true;
 
+    bool running = false;
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -136,7 +138,7 @@ int main() {
         // -----
         processInput(window);
 
-        ImGui::Begin("Game Of Life Pixel", nullptr);
+        ImGui::Begin("Game Of Life Pixel", nullptr, ImGuiWindowFlags_NoMove);
         {
             ImGui::Text("Current board size: (%d, %d)", boardSize.x, boardSize.y);
 
@@ -156,13 +158,15 @@ int main() {
                 newBoardSize = boardSize;
                 ResetBoard();
             }
+
+            ImGui::Checkbox("Play/Pause", &running);
         }
         ImGui::End();
 
-        ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar);
+        ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar);
         {
             ImVec2 size = ImGui::GetWindowSize();
-            viewPortSize = glm::ivec2{ size.x, size.y };
+            viewPortSize = glm::ivec2{ size.x, size.y - ImGui::GetFrameHeight() };
 
             ImGui::Image((ImTextureID)boardB->Get(), ImVec2{ (float)viewPortSize.x, (float)viewPortSize.y });
 
@@ -173,13 +177,15 @@ int main() {
             glm::ivec2 mousePos{ ImGui::GetMousePos().x, ImGui::GetMousePos().y };
             glm::ivec2 windowPos{ ImGui::GetWindowPos().x, ImGui::GetWindowPos().y };
 
-            std::cout << "Mouse pos: (" << mousePos.x - windowPos.x << ", " << mousePos.y - windowPos.y << ")" << std::endl;
+            glm::ivec2 viewportMousePos = mousePos - windowPos - glm::ivec2{ 0, ImGui::GetFrameHeight() };
+
+            std::cout << "Mouse pos: (" << viewportMousePos.x << ", " << viewportMousePos.y << ")" << std::endl;
         }
         ImGui::End();
 
-        ImGui::ShowDemoWindow();
+        //ImGui::ShowDemoWindow();
 
-        if (millisCounted >= minStepTime || firstFrame) {
+        if (firstFrame || (running && millisCounted >= minStepTime)) {
             firstFrame = false;
 
             millisCounted = 0;
