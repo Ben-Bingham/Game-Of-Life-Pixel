@@ -7,7 +7,6 @@
 #include <iostream>
 #include <sstream>
 
-#include "OpenGl-Utility/Shader.h"
 #include "OpenGl-Utility/GLDebug.h"
 #include "OpenGl-Utility/Texture.h"
 
@@ -15,6 +14,8 @@
 #include <random>
 
 #include <glm/gtc/type_ptr.hpp>
+
+#include "OpenGl-Utility/Shaders/ShaderProgram.h"
 
 // From LearnOpenGL.com
 // https://learnopengl.com/code_viewer_gh.php?code=src/1.getting_started/2.2.hello_triangle_indexed/hello_triangle_indexed.cpp
@@ -31,40 +32,19 @@ unsigned int minStepTime{ 16 };
 std::unique_ptr<Texture> boardA;
 std::unique_ptr<Texture> boardB;
 
-unsigned int computerShader{ 0 };
+std::unique_ptr<ShaderProgram> computeShader;
 
 ImGuiInstance imGui{ };
-
-static std::string ReadFile(const std::string& path) {
-    std::string out;
-    std::ifstream file;
-
-    file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-    try {
-        file.open(path);
-
-        std::stringstream shaderStream;
-        shaderStream << file.rdbuf();
-
-        file.close();
-        out = shaderStream.str();
-    }
-    catch (std::ifstream::failure& e) {
-        std::cout << "ERROR: Could not successfully read file with path: " << path << "And error: " << e.what() << std::endl;
-    }
-
-    return out;
-}
 
 void ResetBoard() {
     std::vector<unsigned char> startingData;
     startingData.resize(boardSize.x * boardSize.y * 4);
 
-    startingData[10 * boardSize.x + 10] = 255;
-    startingData[10 * boardSize.x + 11] = 255;
-    startingData[10 * boardSize.x + 12] = 255;
-    startingData[12 * boardSize.x + 11] = 255;
-    startingData[11 * boardSize.x + 12] = 255;
+    //startingData[4 * (boardSize.x * 4) + (4 * 4)] = 255;
+    //startingData[4 * (boardSize.x * 4) + (5 * 4)] = 255;
+    //startingData[4 * (boardSize.x * 4) + (6 * 4)] = 255;
+    //startingData[6 * (boardSize.x * 4) + (5 * 4)] = 255;
+    //startingData[5 * (boardSize.x * 4) + (6 * 4)] = 255;
 
     std::random_device dev;
     std::mt19937 rng(dev());
@@ -129,35 +109,9 @@ int main() {
 
     ResetBoard();
 
-    std::string computerShaderSource = ReadFile("assets\\compute.glsl");
-    const char* computerSource = computerShaderSource.c_str();
-
-    unsigned int cShader = glCreateShader(GL_COMPUTE_SHADER);
-    glShaderSource(cShader, 1, &computerSource, nullptr);
-    glCompileShader(cShader);
-
-    int success;
-    char infoLog[512];
-    glGetShaderiv(cShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(cShader, 512, nullptr, infoLog);
-        std::cout << "ERROR: Compute shader failed to compile:" << std::endl;
-        std::cout << infoLog << std::endl;
-    }
-
-    computerShader = glCreateProgram();
-    glAttachShader(computerShader, cShader);
-
-    glLinkProgram(computerShader);
-
-    glGetProgramiv(computerShader, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(computerShader, 512, nullptr, infoLog);
-        std::cout << "ERROR: Compute Shader program failed to link:" << std::endl;
-        std::cout << infoLog << std::endl;
-    }
-
-    glDeleteShader(cShader);
+    computeShader = std::make_unique<ShaderProgram>();
+    computeShader->AddShader("assets\\compute.glsl", ShaderProgram::ShaderType::COMPUTE);
+    computeShader->Link();
 
     std::chrono::time_point<std::chrono::steady_clock> lastStepTime = std::chrono::steady_clock::now();
 
@@ -235,11 +189,14 @@ int main() {
 
             std::chrono::time_point<std::chrono::steady_clock> computeStart = std::chrono::steady_clock::now();
 
-            glUseProgram(computerShader);
+            //glUseProgram(computerShader);
+            computeShader->Bind();
             glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
             glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
 
-            glUniform2iv(glGetUniformLocation(computerShader, "boardSize"), 1, glm::value_ptr(boardSize));
+            computeShader->SetVec2("boardSize", boardSize);
+
+            //glUniform2iv(glGetUniformLocation(computerShader, "boardSize"), 1, glm::value_ptr(boardSize));
 
             glActiveTexture(GL_TEXTURE0);
             boardA->Bind();
@@ -266,7 +223,7 @@ int main() {
 
     imGui.Cleanup();
 
-    glDeleteProgram(computerShader);
+    //glDeleteProgram(computerShader);
 
     killTimerThread = true;
     timerThread.join();
