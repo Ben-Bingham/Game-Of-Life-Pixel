@@ -5,8 +5,3 @@ build/
 *.vcxproj
 *.vcxproj.user
 *.vcxproj.filters
-
-*.ini
-
-assets/models/minecraftWorld/rungholt.obj
-assets/models/bin/rungholt.assbin
