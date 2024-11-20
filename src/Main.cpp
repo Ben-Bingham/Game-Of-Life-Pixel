@@ -27,6 +27,8 @@ glm::ivec2 boardSize{ 100, 100 };
 std::unique_ptr<Texture> boardA;
 std::unique_ptr<Texture> boardB;
 
+bool firstFrame = true;
+
 void ResetBoard() {
     std::vector<unsigned char> startingData;
     startingData.resize(boardSize.x * boardSize.y * 4);
@@ -60,6 +62,8 @@ void ResetBoard() {
 
     glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
     glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
+
+    firstFrame = true;
 }
 
 int main() {
@@ -124,7 +128,6 @@ int main() {
     glm::ivec2 newBoardSize{ boardSize };
 
     unsigned int minStepTime{ 16 };
-    bool firstFrame = true;
 
     bool running = false;
 
@@ -168,7 +171,7 @@ int main() {
             ImVec2 size = ImGui::GetWindowSize();
             viewPortSize = glm::ivec2{ size.x, size.y - ImGui::GetFrameHeight() };
 
-            ImGui::Image((ImTextureID)boardB->Get(), ImVec2{ (float)viewPortSize.x, (float)viewPortSize.y });
+            ImGui::Image((ImTextureID)boardA->Get(), ImVec2{ (float)viewPortSize.x, (float)viewPortSize.y });
 
             if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
                 //std::cout << "Left dragging" << std::endl;
