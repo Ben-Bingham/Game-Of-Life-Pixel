@@ -115,9 +115,6 @@ int main() {
 
     std::chrono::time_point<std::chrono::steady_clock> lastStepTime = std::chrono::steady_clock::now();
 
-    std::chrono::duration<double> frameTime{ };
-    std::chrono::duration<double> computeTime{ };
-
     glfwSwapInterval(0);
 
     bool killTimerThread = false;
@@ -137,9 +134,6 @@ int main() {
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
-
-        std::chrono::time_point<std::chrono::steady_clock> frameStart = std::chrono::steady_clock::now();
-
         imGui.StartNewFrame();
         ImGui::DockSpaceOverViewport();
 
@@ -149,8 +143,6 @@ int main() {
 
         ImGui::Begin("Game Of Life Pixel", nullptr, ImGuiWindowFlags_NoMove);
         {
-            ImGui::Text(("Compute Time: " + std::to_string((double)computeTime.count() * 1000.0) + "ms").c_str());
-
             ImGui::Text("x: %d, y: %d", viewPortSize.x, viewPortSize.y);
 
             ImGui::Text("Current board size: (%d, %d)", boardSize.x, boardSize.y);
@@ -159,7 +151,7 @@ int main() {
                 millisCounted = 0;
             }
 
-            ImGui::DragInt2("Board size", glm::value_ptr(newBoardSize));
+            ImGui::DragInt2("Board size", glm::value_ptr(newBoardSize), 1, 1, 100000);
 
             if (ImGui::Button("Reset")) {
                 boardSize = newBoardSize;
@@ -168,6 +160,7 @@ int main() {
 
             if (ImGui::Button("Pixel Perfect Board")) {
                 boardSize = viewPortSize;
+                newBoardSize = boardSize;
                 ResetBoard();
             }
         }
@@ -187,16 +180,11 @@ int main() {
         if (millisCounted >= minStepTime) {
             millisCounted = 0;
 
-            std::chrono::time_point<std::chrono::steady_clock> computeStart = std::chrono::steady_clock::now();
-
-            //glUseProgram(computerShader);
             computeShader->Bind();
             glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
             glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
 
             computeShader->SetVec2("boardSize", boardSize);
-
-            //glUniform2iv(glGetUniformLocation(computerShader, "boardSize"), 1, glm::value_ptr(boardSize));
 
             glActiveTexture(GL_TEXTURE0);
             boardA->Bind();
@@ -206,7 +194,6 @@ int main() {
 
             glDispatchCompute(boardSize.x, boardSize.y, 1);
             glMemoryBarrier(GL_ALL_BARRIER_BITS);
-            computeTime = std::chrono::steady_clock::now() - computeStart;
 
             std::swap(boardA, boardB);
         }
@@ -217,13 +204,9 @@ int main() {
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
-
-        frameTime = std::chrono::steady_clock::now() - frameStart;
     }
 
     imGui.Cleanup();
-
-    //glDeleteProgram(computerShader);
 
     killTimerThread = true;
     timerThread.join();
