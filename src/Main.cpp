@@ -28,6 +28,7 @@ std::unique_ptr<Texture> boardA;
 std::unique_ptr<Texture> boardB;
 
 bool firstFrame = true;
+bool step = false;
 
 void ResetBoard() {
     std::vector<unsigned char> startingData;
@@ -163,6 +164,12 @@ int main() {
             }
 
             ImGui::Checkbox("Play/Pause", &running);
+
+            if (!running) {
+                if (ImGui::Button("Step")) {
+                    step = true;
+                }
+            }
         }
         ImGui::End();
 
@@ -188,8 +195,9 @@ int main() {
 
         //ImGui::ShowDemoWindow();
 
-        if (firstFrame || (running && millisCounted >= minStepTime)) {
+        if (firstFrame || (running && millisCounted >= minStepTime) || (!running && step)) {
             firstFrame = false;
+            step = false;
 
             millisCounted = 0;
 
