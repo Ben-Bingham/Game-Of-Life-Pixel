@@ -54,6 +54,8 @@ void ResetBoard() {
         }
     }
 
+    //startingData[0] = 255;
+
     Texture::Parameters textureParameters{ };
     textureParameters.minFilter = Texture::FilteringMode::NEAREST;
     textureParameters.magFilter = Texture::FilteringMode::NEAREST;
@@ -102,7 +104,9 @@ int main() {
     ResetBoard();
 
     std::unique_ptr<ShaderProgram> computeShader = std::make_unique<ShaderProgram>();
-    computeShader->AddShader("assets\\OnePixel.glsl", ShaderProgram::ShaderType::COMPUTE);
+    //computeShader->AddShader("assets\\OnePixel.glsl", ShaderProgram::ShaderType::COMPUTE);
+    computeShader->AddShader("assets\\TwoByTwoPixel.glsl", ShaderProgram::ShaderType::COMPUTE);
+
     computeShader->Link();
 
     bool killTimerThread = false;
@@ -222,7 +226,7 @@ int main() {
 
             glBeginQuery(GL_TIME_ELAPSED, timeQueryA);
 
-            glDispatchCompute(boardSize.x, boardSize.y, 1);
+            glDispatchCompute(boardSize.x / 2, boardSize.y / 2, 1);
             glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
             glEndQuery(GL_TIME_ELAPSED);
