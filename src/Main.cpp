@@ -189,7 +189,7 @@ int main() {
 
             glm::ivec2 viewportMousePos = mousePos - windowPos - glm::ivec2{ 0, ImGui::GetFrameHeight() };
 
-            std::cout << "Mouse pos: (" << viewportMousePos.x << ", " << viewportMousePos.y << ")" << std::endl;
+            //std::cout << "Mouse pos: (" << viewportMousePos.x << ", " << viewportMousePos.y << ")" << std::endl;
         }
         ImGui::End();
 
