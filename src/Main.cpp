@@ -102,7 +102,7 @@ int main() {
     ResetBoard();
 
     std::unique_ptr<ShaderProgram> computeShader = std::make_unique<ShaderProgram>();
-    computeShader->AddShader("assets\\compute.glsl", ShaderProgram::ShaderType::COMPUTE);
+    computeShader->AddShader("assets\\OnePixel.glsl", ShaderProgram::ShaderType::COMPUTE);
     computeShader->Link();
 
     bool killTimerThread = false;
