@@ -8,14 +8,6 @@ uniform ivec2 boardSize;
 
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
-    //imageStore(boardB, pos, imageLoad(boardA, pos).r == 0 ? uvec4(255) : uvec4(0));
-    //return;
-    //uint val = uint(256.0 * (gl_GlobalInvocationID.x / 400)); 
-
-    if (gl_GlobalInvocationID.x == gl_GlobalInvocationID.y) {
-      //  imageStore(boardA, pos, uvec4(255, 0, 0, 0));
-    }
-    //return;
 
     /*
     |---------------
@@ -40,14 +32,6 @@ void main() {
 
     // Fetch from boardB
     x  = imageLoad(boardA, pos + ivec2( 0,  0)).x;
-
-    //imageStore(boardA, pos, uvec4(255, 0, 0, 0));
-
-
-    //if (x != 0) {
-    //    imageStore(boardA, pos, uvec4(256, 0, 0, 0));
-    //}
-    //return;
     
     ivec2 x0Pos = pos + ivec2(-1, -1);
     ivec2 x1Pos = pos + ivec2( 0, -1);
@@ -105,15 +89,6 @@ void main() {
 
     uint neighbourCount = x0 + x1 + x2 + x3 + x5 + x6 + x7 + x8;
 
-    /*
-    if (neighbourCount == 3) {
-        imageStore(boardB, pos, uvec4(255, 0, 0, 0));
-    } else {
-        imageStore(boardB, pos, uvec4(0, 0, 0, 0));
-    }
-    */
-    //return;
-
     // Default action should be to clear the entry in boardA
     uint valToStore = 0;
 
@@ -132,11 +107,4 @@ void main() {
     int val = valToStore == 1 ? 255 : 0;
 
     imageStore(boardB, pos, uvec4(val));
-
-    //if ((gl_GlobalInvocationID.x + gl_GlobalInvocationID.y) % 2 == 0) {
-    //    imageStore(boardA, pos, uvec4(256, 0, 0, 0));
-    //} else {
-    //    imageStore(boardA, pos, uvec4(0, 0, 0, 0));
-    //}
-    
 }
