@@ -27,7 +27,7 @@ glm::ivec2 boardSize{ 100, 100 };
 std::unique_ptr<Texture> boardA;
 std::unique_ptr<Texture> boardB;
 
-bool firstFrame = true;
+bool firstFrameOfBoard = true;
 bool step = false;
 
 void ResetBoard() {
@@ -64,7 +64,7 @@ void ResetBoard() {
     glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
     glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
 
-    firstFrame = true;
+    firstFrameOfBoard = true;
 }
 
 int main() {
@@ -132,6 +132,16 @@ int main() {
 
     bool running = false;
 
+    unsigned int timeQueryA{ };
+    unsigned int timeQueryB{ };
+
+    glGenQueries(1, &timeQueryA);
+    glGenQueries(1, &timeQueryB);
+
+    uint64_t computeTime{ };
+
+    bool firstFrame = true;
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -144,6 +154,7 @@ int main() {
 
         ImGui::Begin("Game Of Life Pixel", nullptr, ImGuiWindowFlags_NoMove);
         {
+            ImGui::Text("Compute time: %fms", (float)computeTime / 1'000'000.0);
             ImGui::Text("Current board size: (%d, %d)", boardSize.x, boardSize.y);
 
             if (ImGui::DragInt("Minimum step time", (int*)&minStepTime, 0.05f, 0, 60 * 1000)) { // Max time is one minute
@@ -195,8 +206,14 @@ int main() {
 
         //ImGui::ShowDemoWindow();
 
-        if (firstFrame || (running && millisCounted >= minStepTime) || (!running && step)) {
+        if (firstFrameOfBoard || (running && millisCounted >= minStepTime) || (!running && step)) {
+            // Get the last compute time
+            if (!firstFrame) {
+                glGetQueryObjectui64v(timeQueryB, GL_QUERY_RESULT, &computeTime);
+            }
+
             firstFrame = false;
+            firstFrameOfBoard = false;
             step = false;
 
             millisCounted = 0;
@@ -213,9 +230,14 @@ int main() {
             glActiveTexture(GL_TEXTURE1);
             boardB->Bind();
 
+            glBeginQuery(GL_TIME_ELAPSED, timeQueryA);
+
             glDispatchCompute(boardSize.x, boardSize.y, 1);
             glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
+            glEndQuery(GL_TIME_ELAPSED);
+
+            std::swap(timeQueryA, timeQueryB);
             std::swap(boardA, boardB);
         }
 
