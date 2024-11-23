@@ -1,4 +1,5 @@
 #include "ShaderProgram.h"
+#include <algorithm>
 #include <iostream>
 
 #include <gl/glew.h>
@@ -26,6 +27,9 @@ unsigned ShaderProgram::Get() {
 
 void ShaderProgram::AddShader(const std::string& shaderPath, ShaderType shaderType) {
     std::string shaderSourceStr = ReadFile(shaderPath);
+
+    AddDefines(shaderSourceStr);
+
     const char* shaderSource = shaderSourceStr.c_str();
 
     unsigned int shader = glCreateShader((int)shaderType);
@@ -66,6 +70,14 @@ void ShaderProgram::Link() {
     m_Shaders.clear();
 }
 
+void ShaderProgram::AddDefine(const std::string& name, const std::string& value) {
+    if (!m_Shaders.empty()) {
+        std::cout << "ERROR: Adding a define to a shader program that already has shaders. Any previously added shaders will not contain the new defines." << std::endl;
+    }
+
+    m_Defines.push_back(std::make_pair(name, value));
+}
+
 void ShaderProgram::SetFloat(const std::string& name, const float& value) {
     glUniform1f(glGetUniformLocation(m_ShaderProgramHandle, name.c_str()), value);
 }
@@ -101,4 +113,20 @@ void ShaderProgram::SetBool(const std::string& name, const bool& value) {
     }
 
     SetInt(name, realValue);
+}
+
+void ShaderProgram::AddDefines(std::string& shaderSource) {
+    for (const auto& define : m_Defines) {
+        std::string oldDefineString = "#define " + define.first;
+        std::string newDefineString = "#define " + define.first + " " + define.second;
+
+        size_t defineLocation = shaderSource.find(oldDefineString);
+        size_t nextNewLine = std::string{ shaderSource.substr(defineLocation) }.find('\n') + defineLocation;
+
+        if (defineLocation == std::string::npos || nextNewLine == std::string::npos) {
+            continue;
+        }
+
+        shaderSource = shaderSource.substr(0, defineLocation) + newDefineString + shaderSource.substr(nextNewLine);
+    }
 }

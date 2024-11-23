@@ -31,6 +31,19 @@ public:
 
     void Link();
 
+    // This overwrites a #define already present in all shaders with the name "name" and value "value" ex:
+    //
+    // in shader.glsl:
+    // #define THREAD_COUNT 4
+    //
+    // in main.cpp:
+    // shaderProgram.AddDefine("THREAD_COUNT", "8");
+    //
+    // shader.glsl becomes:
+    // #define THREAD_COUNT 8
+    //
+    void AddDefine(const std::string& name, const std::string& value);
+
     void SetFloat(const std::string& name, const float& value);
     void SetInt(const std::string& name, const int& value);
 
@@ -44,7 +57,11 @@ public:
     void SetBool(const std::string& name, const bool& value);
 
 protected:
+    void AddDefines(std::string& shaderSource);
+
     unsigned int m_ShaderProgramHandle;
 
     std::vector<unsigned int> m_Shaders;
+
+    std::vector<std::pair<std::string, std::string>> m_Defines;
 };
