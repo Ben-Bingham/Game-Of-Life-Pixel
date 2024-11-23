@@ -68,16 +68,12 @@ void ResetBoard() {
 }
 
 int main() {
-    // glfw: initialize and configure
-    // ------------------------------
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 
-    // glfw window creation
-    // --------------------
     GLFWwindow* window = glfwCreateWindow(1600, 1000, "Game Of Life Pixel", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -87,8 +83,6 @@ int main() {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(0);
 
-    // glew: load all OpenGL function pointers
-    // ---------------------------------------
     if (glewInit() != GLEW_OK) {
         std::cout << "Failed to initialize GLEW" << std::endl;
         return -1;
@@ -142,14 +136,10 @@ int main() {
 
     bool firstFrame = true;
 
-    // render loop
-    // -----------
     while (!glfwWindowShouldClose(window)) {
         imGui.StartNewFrame();
         ImGui::DockSpaceOverViewport();
 
-        // input
-        // -----
         processInput(window);
 
         ImGui::Begin("Game Of Life Pixel", nullptr, ImGuiWindowFlags_NoMove);
@@ -243,8 +233,6 @@ int main() {
 
         imGui.FinishFrame();
 
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -254,14 +242,10 @@ int main() {
     killTimerThread = true;
     timerThread.join();
 
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
     glfwTerminate();
     return 0;
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
