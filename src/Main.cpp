@@ -104,9 +104,7 @@ int main() {
     ResetBoard();
 
     std::unique_ptr<ShaderProgram> computeShader = std::make_unique<ShaderProgram>();
-    //computeShader->AddShader("assets\\OnePixel.glsl", ShaderProgram::ShaderType::COMPUTE);
-    //computeShader->AddShader("assets\\TwoByTwoPixel.glsl", ShaderProgram::ShaderType::COMPUTE);
-    computeShader->AddShader("assets\\Parallel2x2.glsl", ShaderProgram::ShaderType::COMPUTE);
+    computeShader->AddShader("assets\\2x2ThreadGrid.glsl", ShaderProgram::ShaderType::COMPUTE);
 
     computeShader->Link();
 
@@ -228,7 +226,6 @@ int main() {
             glBeginQuery(GL_TIME_ELAPSED, timeQueryA);
 
             glDispatchCompute(boardSize.x / 2, boardSize.y / 2, 1);
-            //glDispatchCompute(boardSize.x, boardSize.y, 1);
 
             glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
