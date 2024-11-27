@@ -15,6 +15,7 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include "OpenGl-Utility/SSBO.h"
 #include "OpenGl-Utility/Shaders/ShaderProgram.h"
 
 // From LearnOpenGL.com
@@ -22,7 +23,9 @@
 
 void processInput(GLFWwindow* window);
 
-glm::ivec2 boardSize{ 100, 100 };
+glm::ivec2 boardSize{ 20, 20 };
+
+std::pair<glm::ivec2, glm::ivec2> visibleBoard = std::make_pair(glm::ivec2{ 0, 0 }, boardSize);
 
 std::unique_ptr<Texture> boardA;
 std::unique_ptr<Texture> boardB;
@@ -34,25 +37,25 @@ void ResetBoard() {
     std::vector<unsigned char> startingData;
     startingData.resize(boardSize.x * boardSize.y * 4);
 
-    //startingData[4 * (boardSize.x * 4) + (4 * 4)] = 255;
-    //startingData[4 * (boardSize.x * 4) + (5 * 4)] = 255;
-    //startingData[4 * (boardSize.x * 4) + (6 * 4)] = 255;
-    //startingData[6 * (boardSize.x * 4) + (5 * 4)] = 255;
-    //startingData[5 * (boardSize.x * 4) + (6 * 4)] = 255;
+    startingData[4 * (boardSize.x * 4) + (4 * 4)] = 255;
+    startingData[4 * (boardSize.x * 4) + (5 * 4)] = 255;
+    startingData[4 * (boardSize.x * 4) + (6 * 4)] = 255;
+    startingData[6 * (boardSize.x * 4) + (5 * 4)] = 255;
+    startingData[5 * (boardSize.x * 4) + (6 * 4)] = 255;
 
     std::random_device dev;
     std::mt19937 rng(dev());
 
-    for (int x = 0; x < boardSize.x * 4; x += 4) {
-        for (int y = 0; y < boardSize.y * 4; y += 4) {
-
-            std::uniform_int_distribution<std::mt19937::result_type> dist6(0, 10);
-
-            if (dist6(rng) > 8) {
-                startingData[y * boardSize.x + x] = 255;
-            }
-        }
-    }
+    //for (int x = 0; x < boardSize.x * 4; x += 4) {
+    //    for (int y = 0; y < boardSize.y * 4; y += 4) {
+    //
+    //        std::uniform_int_distribution<std::mt19937::result_type> dist6(0, 10);
+    //
+    //        if (dist6(rng) > 8) {
+    //            startingData[y * boardSize.x + x] = 255;
+    //        }
+    //    }
+    //}
 
     //startingData[0] = 255;
 
@@ -108,6 +111,13 @@ int main() {
 
     computeShader->Link();
 
+    std::unique_ptr<ShaderProgram> cellUploadShader = std::make_unique<ShaderProgram>();
+    cellUploadShader->AddShader("assets\\SetCells.glsl", ShaderProgram::ShaderType::COMPUTE);
+
+    cellUploadShader->Link();
+
+    std::unique_ptr<SSBO<glm::ivec2>> setCellsSSBO = std::make_unique<SSBO<glm::ivec2>>(2);
+
     bool killTimerThread = false;
     std::atomic<size_t> millisCounted = 0;
 
@@ -138,6 +148,8 @@ int main() {
     uint64_t computeTime{ };
 
     bool firstFrame = true;
+
+    std::vector<glm::ivec2> clickedCells{ };
 
     while (!glfwWindowShouldClose(window)) {
         imGui.StartNewFrame();
@@ -184,20 +196,40 @@ int main() {
 
             ImGui::Image((ImTextureID)boardA->Get(), ImVec2{ (float)viewPortSize.x, (float)viewPortSize.y });
 
-            if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-                //std::cout << "Left dragging" << std::endl;
-            }
-
             glm::ivec2 mousePos{ ImGui::GetMousePos().x, ImGui::GetMousePos().y };
             glm::ivec2 windowPos{ ImGui::GetWindowPos().x, ImGui::GetWindowPos().y };
 
             glm::ivec2 viewportMousePos = mousePos - windowPos - glm::ivec2{ 0, ImGui::GetFrameHeight() };
 
-            //std::cout << "Mouse pos: (" << viewportMousePos.x << ", " << viewportMousePos.y << ")" << std::endl;
+            glm::vec2 cellPosF = (glm::vec2{ viewportMousePos.x, viewportMousePos.y } / glm::vec2{ viewPortSize.x, viewPortSize.y }) * glm::vec2{ boardSize.x, boardSize.y };
+
+            glm::ivec2 cellPos{ cellPosF.x, cellPosF.y };
+
+            if (ImGui::IsMouseDown(0)) {
+                if (cellPos.x >= 0 && cellPos.y >= 0 && cellPos.x < boardSize.x && cellPos.y < boardSize.y) {
+                    clickedCells.emplace_back(cellPos);
+                }
+            }
         }
         ImGui::End();
+        
+        if (!clickedCells.empty()) {
+            // Upload any clicked cells
+            cellUploadShader->Bind();
 
-        //ImGui::ShowDemoWindow();
+            glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
+
+            glActiveTexture(GL_TEXTURE0);
+            boardA->Bind();
+
+            setCellsSSBO->SetData(clickedCells);
+
+            glDispatchCompute((int)clickedCells.size(), 1, 1);
+
+            glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+            clickedCells.clear();
+        }
 
         if (firstFrameOfBoard || (running && millisCounted >= minStepTime) || (!running && step)) {
             // Get the last compute time
