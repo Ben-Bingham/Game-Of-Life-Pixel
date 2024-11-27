@@ -111,12 +111,17 @@ int main() {
 
     computeShader->Link();
 
-    std::unique_ptr<ShaderProgram> cellUploadShader = std::make_unique<ShaderProgram>();
-    cellUploadShader->AddShader("assets\\SetCells.glsl", ShaderProgram::ShaderType::COMPUTE);
+    std::unique_ptr<ShaderProgram> cellSetShader = std::make_unique<ShaderProgram>();
+    cellSetShader->AddShader("assets\\SetCells.glsl", ShaderProgram::ShaderType::COMPUTE);
 
-    cellUploadShader->Link();
+    cellSetShader->Link();
 
-    std::unique_ptr<SSBO<glm::ivec2>> setCellsSSBO = std::make_unique<SSBO<glm::ivec2>>(2);
+    std::unique_ptr<ShaderProgram> cellClearShader = std::make_unique<ShaderProgram>();
+    cellClearShader->AddShader("assets\\ClearCells.glsl", ShaderProgram::ShaderType::COMPUTE);
+
+    cellClearShader->Link();
+
+    std::unique_ptr<SSBO<glm::ivec2>> cellSSBO = std::make_unique<SSBO<glm::ivec2>>(2);
 
     bool killTimerThread = false;
     std::atomic<size_t> millisCounted = 0;
@@ -149,7 +154,8 @@ int main() {
 
     bool firstFrame = true;
 
-    std::vector<glm::ivec2> clickedCells{ };
+    std::vector<glm::ivec2> setCells{ };
+    std::vector<glm::ivec2> clearCells{ };
 
     while (!glfwWindowShouldClose(window)) {
         imGui.StartNewFrame();
@@ -207,28 +213,50 @@ int main() {
 
             if (ImGui::IsMouseDown(0)) {
                 if (cellPos.x >= 0 && cellPos.y >= 0 && cellPos.x < boardSize.x && cellPos.y < boardSize.y) {
-                    clickedCells.emplace_back(cellPos);
+                    setCells.emplace_back(cellPos);
+                }
+            }
+
+            if (ImGui::IsMouseDown(1)) {
+                if (cellPos.x >= 0 && cellPos.y >= 0 && cellPos.x < boardSize.x && cellPos.y < boardSize.y) {
+                    clearCells.emplace_back(cellPos);
                 }
             }
         }
         ImGui::End();
         
-        if (!clickedCells.empty()) {
-            // Upload any clicked cells
-            cellUploadShader->Bind();
+        if (!setCells.empty()) {
+            cellSetShader->Bind();
 
             glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
 
             glActiveTexture(GL_TEXTURE0);
             boardA->Bind();
 
-            setCellsSSBO->SetData(clickedCells);
+            cellSSBO->SetData(setCells);
 
-            glDispatchCompute((int)clickedCells.size(), 1, 1);
+            glDispatchCompute((int)setCells.size(), 1, 1);
 
             glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-            clickedCells.clear();
+            setCells.clear();
+        }
+
+        if (!clearCells.empty()) {
+            cellClearShader->Bind();
+
+            glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
+
+            glActiveTexture(GL_TEXTURE0);
+            boardA->Bind();
+
+            cellSSBO->SetData(clearCells);
+
+            glDispatchCompute((int)clearCells.size(), 1, 1);
+
+            glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+            clearCells.clear();
         }
 
         if (firstFrameOfBoard || (running && millisCounted >= minStepTime) || (!running && step)) {
