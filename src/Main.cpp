@@ -33,43 +33,233 @@ std::unique_ptr<Texture> boardB;
 bool firstFrameOfBoard = true;
 bool step = false;
 
-void ResetBoard() {
-    std::vector<unsigned char> startingData;
-    startingData.resize(boardSize.x * boardSize.y * 4);
+std::unique_ptr<ShaderProgram> cellSetShader;
+std::unique_ptr<ShaderProgram> cellClearShader;
+std::unique_ptr<SSBO<glm::ivec2>> cellSSBO;
 
-    startingData[4 * (boardSize.x * 4) + (4 * 4)] = 255;
-    startingData[4 * (boardSize.x * 4) + (5 * 4)] = 255;
-    startingData[4 * (boardSize.x * 4) + (6 * 4)] = 255;
-    startingData[6 * (boardSize.x * 4) + (5 * 4)] = 255;
-    startingData[5 * (boardSize.x * 4) + (6 * 4)] = 255;
-
-    std::random_device dev;
-    std::mt19937 rng(dev());
-
-    //for (int x = 0; x < boardSize.x * 4; x += 4) {
-    //    for (int y = 0; y < boardSize.y * 4; y += 4) {
-    //
-    //        std::uniform_int_distribution<std::mt19937::result_type> dist6(0, 10);
-    //
-    //        if (dist6(rng) > 8) {
-    //            startingData[y * boardSize.x + x] = 255;
-    //        }
-    //    }
-    //}
-
-    //startingData[0] = 255;
-
-    Texture::Parameters textureParameters{ };
-    textureParameters.minFilter = Texture::FilteringMode::NEAREST;
-    textureParameters.magFilter = Texture::FilteringMode::NEAREST;
-
-    boardA = std::make_unique<Texture>(boardSize, textureParameters, startingData);
-    boardB = std::make_unique<Texture>(boardSize, textureParameters);
+void SetCells(const std::vector<glm::ivec2>& cells) {
+    cellSetShader->Bind();
 
     glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
-    glBindImageTexture(1, boardB->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
 
-    firstFrameOfBoard = true;
+    glActiveTexture(GL_TEXTURE0);
+    boardA->Bind();
+
+    cellSSBO->SetData(cells);
+
+    glDispatchCompute((int)cells.size(), 1, 1);
+
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);
+}
+
+void ClearCells(const std::vector<glm::ivec2>& cells) {
+    int maxWorkGroupsX;
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &maxWorkGroupsX);
+
+    if (cells.size() > (size_t)maxWorkGroupsX) {
+        size_t iterationCount = cells.size() / (size_t)maxWorkGroupsX;
+        size_t highestIndex = 0;
+
+        for (size_t i = 0; i < iterationCount; ++i) {
+            std::vector<glm::ivec2> cellSubset{ };
+            cellSubset.reserve(maxWorkGroupsX);
+            for (size_t j = 0; j < maxWorkGroupsX; ++j) {
+                if (highestIndex >= cells.size()) {
+                    break;
+                }
+
+                cellSubset.push_back(cells[highestIndex]);
+                ++highestIndex;
+            }
+
+            ClearCells(cellSubset);
+        }
+    }
+
+    cellClearShader->Bind();
+
+    glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
+
+    glActiveTexture(GL_TEXTURE0);
+    boardA->Bind();
+
+    cellSSBO->SetData(cells);
+
+    glDispatchCompute((int)cells.size(), 1, 1);
+
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);
+}
+
+float chanceToFillCell = 0.3f;
+
+void ApplyBoardType(int boardType) {
+    // Clear the board
+    std::vector<glm::ivec2> clearCells{ };
+    clearCells.reserve((size_t)boardSize.x * (size_t)boardSize.y);
+    for (int x = 0; x < boardSize.x; ++x) {
+        for (int y = 0; y < boardSize.y; ++y) {
+            clearCells.emplace_back(glm::ivec2{ x, y });
+        }
+    }
+
+    ClearCells(clearCells);
+
+    switch (boardType) {
+        case 1: { // Random
+            std::vector<glm::ivec2> cells{ };
+            cells.reserve((size_t)((float)boardSize.x * (float)boardSize.y * chanceToFillCell));
+
+            std::random_device dev;
+            std::mt19937 rng(dev());
+
+            for (int x = 0; x < boardSize.x; ++x) {
+                for (int y = 0; y < boardSize.y; ++y) {
+                    std::uniform_real dist(0.0f, 1.0f);
+                    if (dist(rng) < chanceToFillCell) {
+                        cells.emplace_back(glm::ivec2{ x, y });
+                    }
+                }
+            }
+
+            SetCells(cells);
+            break;
+        }
+        case 2: { // Glider
+            int baseY = boardSize.y / 2;
+            int baseX = boardSize.x / 2;
+
+            std::vector<glm::ivec2> cells{
+                { baseX + 0, baseY + 0 },
+                { baseX + 1, baseY + 0 },
+                { baseX + 2, baseY + 0 },
+                { baseX + 1, baseY + 2 },
+                { baseX + 2, baseY + 1 }
+            };
+
+            SetCells(cells);
+            break;
+        }
+        case 3: { // Kok's galaxy
+            int baseY = boardSize.y / 4;
+            int baseX = boardSize.x / 4;
+
+            std::vector<glm::ivec2> cells{
+                { baseX + 0, baseY + 0 },
+                { baseX + 1, baseY + 0 },
+                { baseX + 2, baseY + 0 },
+                { baseX + 3, baseY + 0 },
+                { baseX + 4, baseY + 0 },
+                { baseX + 5, baseY + 0 },
+                { baseX + 0, baseY + 1 },
+                { baseX + 1, baseY + 1 },
+                { baseX + 2, baseY + 1 },
+                { baseX + 3, baseY + 1 },
+                { baseX + 4, baseY + 1 },
+                { baseX + 5, baseY + 1 },
+
+                { baseX + 3, baseY + 7 },
+                { baseX + 4, baseY + 7 },
+                { baseX + 5, baseY + 7 },
+                { baseX + 6, baseY + 7 },
+                { baseX + 7, baseY + 7 },
+                { baseX + 8, baseY + 7 },
+                { baseX + 3, baseY + 8 },
+                { baseX + 4, baseY + 8 },
+                { baseX + 5, baseY + 8 },
+                { baseX + 6, baseY + 8 },
+                { baseX + 7, baseY + 8 },
+                { baseX + 8, baseY + 8 },
+
+                { baseX + 7, baseY + 0 },
+                { baseX + 7, baseY + 1 },
+                { baseX + 7, baseY + 2 },
+                { baseX + 7, baseY + 3 },
+                { baseX + 7, baseY + 4 },
+                { baseX + 7, baseY + 5 },
+                { baseX + 8, baseY + 0 },
+                { baseX + 8, baseY + 1 },
+                { baseX + 8, baseY + 2 },
+                { baseX + 8, baseY + 3 },
+                { baseX + 8, baseY + 4 },
+                { baseX + 8, baseY + 5 },
+
+                { baseX + 0, baseY + 3 },
+                { baseX + 0, baseY + 4 },
+                { baseX + 0, baseY + 5 },
+                { baseX + 0, baseY + 6 },
+                { baseX + 0, baseY + 7 },
+                { baseX + 0, baseY + 8 },
+                { baseX + 1, baseY + 3 },
+                { baseX + 1, baseY + 4 },
+                { baseX + 1, baseY + 5 },
+                { baseX + 1, baseY + 6 },
+                { baseX + 1, baseY + 7 },
+                { baseX + 1, baseY + 8 },
+            };
+
+            SetCells(cells);
+            break;
+        }
+        case 4: { // Glider Gun
+            int baseY = 0;
+            int baseX = 0;
+
+            std::vector<glm::ivec2> cells{
+                { baseX + 0, baseY + 4 },
+                { baseX + 1, baseY + 4 },
+                { baseX + 0, baseY + 5 },
+                { baseX + 1, baseY + 5 },
+
+                { baseX + 10, baseY + 4 },
+                { baseX + 10, baseY + 5 },
+                { baseX + 10, baseY + 6 },
+
+                { baseX + 11, baseY + 3 },
+                { baseX + 11, baseY + 7 },
+
+                { baseX + 12, baseY + 2 },
+                { baseX + 12, baseY + 8 },
+
+                { baseX + 13, baseY + 2 },
+                { baseX + 13, baseY + 8 },
+
+                { baseX + 14, baseY + 5 },
+
+                { baseX + 15, baseY + 3 },
+                { baseX + 15, baseY + 7 },
+
+                { baseX + 16, baseY + 4 },
+                { baseX + 16, baseY + 5 },
+                { baseX + 16, baseY + 6 },
+
+                { baseX + 17, baseY + 5 },
+
+                { baseX + 20, baseY + 2 },
+                { baseX + 20, baseY + 3 },
+                { baseX + 20, baseY + 4 },
+
+                { baseX + 21, baseY + 2 },
+                { baseX + 21, baseY + 3 },
+                { baseX + 21, baseY + 4 },
+
+                { baseX + 22, baseY + 1 },
+                { baseX + 22, baseY + 5 },
+
+                { baseX + 24, baseY + 0 },
+                { baseX + 24, baseY + 1 },
+                { baseX + 24, baseY + 5 },
+                { baseX + 24, baseY + 6 },
+
+                { baseX + 34, baseY + 2 },
+                { baseX + 35, baseY + 2 },
+                { baseX + 34, baseY + 3 },
+                { baseX + 35, baseY + 3 },
+            };
+
+            SetCells(cells);
+            break;
+        }
+    }
 }
 
 int main() {
@@ -104,24 +294,29 @@ int main() {
     ImGuiInstance imGui{ };
     imGui.Init(window);
 
-    ResetBoard();
-
     std::unique_ptr<ShaderProgram> computeShader = std::make_unique<ShaderProgram>();
     computeShader->AddShader("assets\\2x2ThreadGrid.glsl", ShaderProgram::ShaderType::COMPUTE);
 
     computeShader->Link();
 
-    std::unique_ptr<ShaderProgram> cellSetShader = std::make_unique<ShaderProgram>();
+    cellSetShader = std::make_unique<ShaderProgram>();
     cellSetShader->AddShader("assets\\SetCells.glsl", ShaderProgram::ShaderType::COMPUTE);
 
     cellSetShader->Link();
 
-    std::unique_ptr<ShaderProgram> cellClearShader = std::make_unique<ShaderProgram>();
+    cellClearShader = std::make_unique<ShaderProgram>();
     cellClearShader->AddShader("assets\\ClearCells.glsl", ShaderProgram::ShaderType::COMPUTE);
 
     cellClearShader->Link();
 
-    std::unique_ptr<SSBO<glm::ivec2>> cellSSBO = std::make_unique<SSBO<glm::ivec2>>(2);
+    Texture::Parameters textureParameters{ };
+    textureParameters.minFilter = Texture::FilteringMode::NEAREST;
+    textureParameters.magFilter = Texture::FilteringMode::NEAREST;
+
+    boardA = std::make_unique<Texture>(boardSize, textureParameters);
+    boardB = std::make_unique<Texture>(boardSize, textureParameters);
+
+    cellSSBO = std::make_unique<SSBO<glm::ivec2>>(2);
 
     bool killTimerThread = false;
     std::atomic<size_t> millisCounted = 0;
@@ -157,6 +352,11 @@ int main() {
     std::vector<glm::ivec2> setCells{ };
     std::vector<glm::ivec2> clearCells{ };
 
+    int defaultBoard = 0;
+
+
+    bool boardSizeChange = true;
+
     while (!glfwWindowShouldClose(window)) {
         imGui.StartNewFrame();
         ImGui::DockSpaceOverViewport();
@@ -174,15 +374,10 @@ int main() {
 
             ImGui::DragInt2("Board size", glm::value_ptr(newBoardSize), 1, 1, 100000);
 
-            if (ImGui::Button("Reset")) {
-                boardSize = newBoardSize;
-                ResetBoard();
-            }
-
             if (ImGui::Button("Pixel Perfect Board")) {
                 boardSize = viewPortSize;
                 newBoardSize = boardSize;
-                ResetBoard();
+                boardSizeChange = true;
             }
 
             ImGui::Checkbox("Play/Pause", &running);
@@ -190,6 +385,39 @@ int main() {
             if (!running) {
                 if (ImGui::Button("Step")) {
                     step = true;
+                }
+            }
+
+            ImGui::Separator();
+
+            ImGui::Text("Default Board State");
+            ImGui::RadioButton("Empty", &defaultBoard, 0);
+
+            ImGui::RadioButton("Random", &defaultBoard, 1);
+            if (defaultBoard == 1) {
+                ImGui::DragFloat("Chance to fill random cell: ", &chanceToFillCell, 0.001f, 0, 1);
+            }
+
+            ImGui::RadioButton("Glider", &defaultBoard, 2);
+            ImGui::RadioButton("Kok's Galaxy", &defaultBoard, 3);
+            ImGui::RadioButton("Glider Gun", &defaultBoard, 4);
+
+            if (ImGui::Button("Apply")) {
+                ApplyBoardType(defaultBoard);
+            }
+
+            if (boardSizeChange) {
+                if (ImGui::Button("Apply board size change")) {
+                    boardSize = newBoardSize;
+
+                    Texture::Parameters textureParameters{ };
+                    textureParameters.minFilter = Texture::FilteringMode::NEAREST;
+                    textureParameters.magFilter = Texture::FilteringMode::NEAREST;
+
+                    boardA = std::make_unique<Texture>(boardSize, textureParameters);
+                    boardB = std::make_unique<Texture>(boardSize, textureParameters);
+
+                    ApplyBoardType(defaultBoard);
                 }
             }
         }
@@ -224,37 +452,15 @@ int main() {
             }
         }
         ImGui::End();
-        
+
         if (!setCells.empty()) {
-            cellSetShader->Bind();
-
-            glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
-
-            glActiveTexture(GL_TEXTURE0);
-            boardA->Bind();
-
-            cellSSBO->SetData(setCells);
-
-            glDispatchCompute((int)setCells.size(), 1, 1);
-
-            glMemoryBarrier(GL_ALL_BARRIER_BITS);
+            SetCells(setCells);
 
             setCells.clear();
         }
 
         if (!clearCells.empty()) {
-            cellClearShader->Bind();
-
-            glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
-
-            glActiveTexture(GL_TEXTURE0);
-            boardA->Bind();
-
-            cellSSBO->SetData(clearCells);
-
-            glDispatchCompute((int)clearCells.size(), 1, 1);
-
-            glMemoryBarrier(GL_ALL_BARRIER_BITS);
+            ClearCells(clearCells);
 
             clearCells.clear();
         }
