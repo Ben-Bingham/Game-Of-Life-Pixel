@@ -290,17 +290,14 @@ int main() {
 
     std::unique_ptr<ShaderProgram> computeShader = std::make_unique<ShaderProgram>();
     computeShader->AddShader("assets\\2x2ThreadGrid.glsl", ShaderProgram::ShaderType::COMPUTE);
-
     computeShader->Link();
 
     cellSetShader = std::make_unique<ShaderProgram>();
     cellSetShader->AddShader("assets\\SetCells.glsl", ShaderProgram::ShaderType::COMPUTE);
-
     cellSetShader->Link();
 
     cellClearShader = std::make_unique<ShaderProgram>();
     cellClearShader->AddShader("assets\\ClearCells.glsl", ShaderProgram::ShaderType::COMPUTE);
-
     cellClearShader->Link();
 
     Texture::Parameters textureParameters{ };
@@ -346,10 +343,9 @@ int main() {
     std::vector<glm::ivec2> setCells{ };
     std::vector<glm::ivec2> clearCells{ };
 
-    int defaultBoard = 0;
+    int boardPreset = 0;
 
-
-    bool boardSizeChange = true;
+    bool boardSizeChange = false;
 
     while (!glfwWindowShouldClose(window)) {
         imGui.StartNewFrame();
@@ -360,11 +356,31 @@ int main() {
             ImGui::Text("Compute time: %fms", (float)computeTime / 1'000'000.0);
             ImGui::Text("Current board size: (%d, %d)", boardSize.x, boardSize.y);
 
-            if (ImGui::DragInt("Minimum step time", (int*)&minStepTime, 0.05f, 0, 60 * 1000)) { // Max time is one minute
+            ImGui::Separator();
+
+            ImGui::Checkbox("Play/Pause", &running);
+
+            if (!running) {
+                ImGui::SameLine();
+
+                if (ImGui::Button("Step")) {
+                    step = true;
+                }
+            }
+
+            ImGui::Text("Minimum Step Time (ms):");
+
+            if (ImGui::DragInt("##minStepTime", (int*)&minStepTime, 0.05f, 0, 60 * 1000)) { // Max time is one minute
                 millisCounted = 0;
             }
 
-            ImGui::DragInt2("Board size", glm::value_ptr(newBoardSize), 1, 1, 100000);
+            ImGui::Separator();
+
+            ImGui::Text("Modify Board Size:");
+
+            if (ImGui::DragInt2("##BoardSize", glm::value_ptr(newBoardSize), 1, 1, 100000)) {
+                boardSizeChange = true;
+            }
 
             if (ImGui::Button("Pixel Perfect Board")) {
                 boardSize = viewPortSize;
@@ -372,34 +388,8 @@ int main() {
                 boardSizeChange = true;
             }
 
-            ImGui::Checkbox("Play/Pause", &running);
-
-            if (!running) {
-                if (ImGui::Button("Step")) {
-                    step = true;
-                }
-            }
-
-            ImGui::Separator();
-
-            ImGui::Text("Default Board State");
-            ImGui::RadioButton("Empty", &defaultBoard, 0);
-
-            ImGui::RadioButton("Random", &defaultBoard, 1);
-            if (defaultBoard == 1) {
-                ImGui::DragFloat("Chance to fill random cell: ", &chanceToFillCell, 0.001f, 0, 1);
-            }
-
-            ImGui::RadioButton("Glider", &defaultBoard, 2);
-            ImGui::RadioButton("Kok's Galaxy", &defaultBoard, 3);
-            ImGui::RadioButton("Glider Gun", &defaultBoard, 4);
-
-            if (ImGui::Button("Apply")) {
-                ApplyBoardType(defaultBoard);
-            }
-
             if (boardSizeChange) {
-                if (ImGui::Button("Apply board size change")) {
+                if (ImGui::Button("Update Board Size")) {
                     boardSize = newBoardSize;
 
                     Texture::Parameters textureParameters{ };
@@ -409,8 +399,28 @@ int main() {
                     boardA = std::make_unique<Texture>(boardSize, textureParameters);
                     boardB = std::make_unique<Texture>(boardSize, textureParameters);
 
-                    ApplyBoardType(defaultBoard);
+                    ApplyBoardType(boardPreset);
+
+                    boardSizeChange = false;
                 }
+            }
+
+            ImGui::Separator();
+
+            ImGui::Text("Select Board Preset");
+            ImGui::RadioButton("Empty", &boardPreset, 0);
+
+            ImGui::RadioButton("Random", &boardPreset, 1);
+            if (boardPreset == 1) {
+                ImGui::DragFloat("Chance to fill random cell: ", &chanceToFillCell, 0.001f, 0, 1);
+            }
+
+            ImGui::RadioButton("Glider", &boardPreset, 2);
+            ImGui::RadioButton("Kok's Galaxy", &boardPreset, 3);
+            ImGui::RadioButton("Glider Gun", &boardPreset, 4);
+
+            if (ImGui::Button("Apply Board Preset")) {
+                ApplyBoardType(boardPreset);
             }
         }
         ImGui::End();
