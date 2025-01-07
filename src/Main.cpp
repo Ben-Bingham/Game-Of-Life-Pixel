@@ -99,9 +99,10 @@ void ApplyBoardType(int boardType) {
 
     ClearCells(clearCells);
 
+    std::vector<glm::ivec2> cells{ };
+
     switch (boardType) {
         case 1: { // Random
-            std::vector<glm::ivec2> cells{ };
             cells.reserve((size_t)((float)boardSize.x * (float)boardSize.y * chanceToFillCell));
 
             std::random_device dev;
@@ -116,14 +117,13 @@ void ApplyBoardType(int boardType) {
                 }
             }
 
-            SetCells(cells);
             break;
         }
         case 2: { // Glider
             int baseY = boardSize.y / 2;
             int baseX = boardSize.x / 2;
 
-            std::vector<glm::ivec2> cells{
+            cells = std::vector<glm::ivec2>{
                 { baseX + 0, baseY + 0 },
                 { baseX + 1, baseY + 0 },
                 { baseX + 2, baseY + 0 },
@@ -131,14 +131,13 @@ void ApplyBoardType(int boardType) {
                 { baseX + 2, baseY + 1 }
             };
 
-            SetCells(cells);
             break;
         }
         case 3: { // Kok's galaxy
             int baseY = boardSize.y / 4;
             int baseX = boardSize.x / 4;
 
-            std::vector<glm::ivec2> cells{
+            cells = std::vector<glm::ivec2>{
                 { baseX + 0, baseY + 0 },
                 { baseX + 1, baseY + 0 },
                 { baseX + 2, baseY + 0 },
@@ -192,14 +191,13 @@ void ApplyBoardType(int boardType) {
                 { baseX + 1, baseY + 8 },
             };
 
-            SetCells(cells);
             break;
         }
         case 4: { // Glider Gun
             int baseY = 0;
             int baseX = 0;
 
-            std::vector<glm::ivec2> cells{
+            cells = std::vector<glm::ivec2>{
                 { baseX + 0, baseY + 4 },
                 { baseX + 1, baseY + 4 },
                 { baseX + 0, baseY + 5 },
@@ -251,10 +249,11 @@ void ApplyBoardType(int boardType) {
                 { baseX + 35, baseY + 3 },
             };
 
-            SetCells(cells);
             break;
         }
     }
+
+    SetCells(cells);
 }
 
 int main() {
