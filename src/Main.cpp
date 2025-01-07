@@ -18,11 +18,6 @@
 #include "OpenGl-Utility/SSBO.h"
 #include "OpenGl-Utility/Shaders/ShaderProgram.h"
 
-// From LearnOpenGL.com
-// https://learnopengl.com/code_viewer_gh.php?code=src/1.getting_started/2.2.hello_triangle_indexed/hello_triangle_indexed.cpp
-
-void processInput(GLFWwindow* window);
-
 glm::ivec2 boardSize{ 20, 20 };
 
 std::pair<glm::ivec2, glm::ivec2> visibleBoard = std::make_pair(glm::ivec2{ 0, 0 }, boardSize);
@@ -361,8 +356,6 @@ int main() {
         imGui.StartNewFrame();
         ImGui::DockSpaceOverViewport();
 
-        processInput(window);
-
         ImGui::Begin("Game Of Life Pixel", nullptr, ImGuiWindowFlags_NoMove);
         {
             ImGui::Text("Compute time: %fms", (float)computeTime / 1'000'000.0);
@@ -514,9 +507,4 @@ int main() {
 
     glfwTerminate();
     return 0;
-}
-
-void processInput(GLFWwindow* window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
 }
