@@ -383,8 +383,7 @@ int main() {
             }
 
             if (ImGui::Button("Pixel Perfect Board")) {
-                boardSize = viewPortSize;
-                newBoardSize = boardSize;
+                newBoardSize = viewPortSize;
                 boardSizeChange = true;
             }
 
