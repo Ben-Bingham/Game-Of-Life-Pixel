@@ -32,7 +32,31 @@ std::unique_ptr<ShaderProgram> cellSetShader;
 std::unique_ptr<ShaderProgram> cellClearShader;
 std::unique_ptr<SSBO<glm::ivec2>> cellSSBO;
 
+int maxComputeWorkGroupsX{ 0 };
+
 void SetCells(const std::vector<glm::ivec2>& cells) {
+    if (cells.size() >= (size_t)maxComputeWorkGroupsX) {
+        size_t iterationCount = (size_t)std::ceil((float)cells.size() / (float)maxComputeWorkGroupsX);
+        size_t highestIndex = 0;
+
+        for (size_t i = 0; i < iterationCount; ++i) {
+            std::vector<glm::ivec2> cellSubset{ };
+            cellSubset.reserve(maxComputeWorkGroupsX - 1);
+            for (size_t j = 0; j < (maxComputeWorkGroupsX - 1); ++j) {
+                if (highestIndex >= cells.size()) {
+                    break;
+                }
+
+                cellSubset.push_back(cells[highestIndex]);
+                ++highestIndex;
+            }
+
+            SetCells(cellSubset);
+        }
+
+        return;
+    }
+
     cellSetShader->Bind();
 
     glBindImageTexture(0, boardA->Get(), 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8UI);
@@ -48,17 +72,14 @@ void SetCells(const std::vector<glm::ivec2>& cells) {
 }
 
 void ClearCells(const std::vector<glm::ivec2>& cells) {
-    int maxWorkGroupsX;
-    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &maxWorkGroupsX);
-
-    if (cells.size() > (size_t)maxWorkGroupsX) {
-        size_t iterationCount = cells.size() / (size_t)maxWorkGroupsX;
+    if (cells.size() >= (size_t)maxComputeWorkGroupsX) {
+        size_t iterationCount = (size_t)std::ceil((float)cells.size() / (float)maxComputeWorkGroupsX);
         size_t highestIndex = 0;
 
         for (size_t i = 0; i < iterationCount; ++i) {
             std::vector<glm::ivec2> cellSubset{ };
-            cellSubset.reserve(maxWorkGroupsX);
-            for (size_t j = 0; j < maxWorkGroupsX; ++j) {
+            cellSubset.reserve(maxComputeWorkGroupsX - 1);
+            for (size_t j = 0; j < (maxComputeWorkGroupsX - 1); ++j) {
                 if (highestIndex >= cells.size()) {
                     break;
                 }
@@ -69,6 +90,8 @@ void ClearCells(const std::vector<glm::ivec2>& cells) {
 
             ClearCells(cellSubset);
         }
+
+        return;
     }
 
     cellClearShader->Bind();
@@ -284,6 +307,8 @@ int main() {
         glDebugMessageCallback(glDebugOutput, nullptr);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
     }
+
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &maxComputeWorkGroupsX);
 
     ImGuiInstance imGui{ };
     imGui.Init(window);
