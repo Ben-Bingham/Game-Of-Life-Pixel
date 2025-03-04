@@ -414,6 +414,7 @@ int main() {
 
             if (boardSizeChange) {
                 if (ImGui::Button("Update Board Size")) {
+                    newBoardSize = glm::clamp(newBoardSize, glm::ivec2{ 0, 0 }, viewPortSize);
                     boardSize = newBoardSize;
 
                     Texture::Parameters textureParameters{ };
